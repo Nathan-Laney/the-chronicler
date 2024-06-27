@@ -1,5 +1,5 @@
 const { Events } = require("discord.js");
-const ProfileModel = require("../models/profileSchema");
+const profileModel = require("../models/profileSchema");
  
 module.exports = {
     name: Events.InteractionCreate,
@@ -8,9 +8,9 @@ module.exports = {
         // Grab the profile data of the user who sent the command
         let profileData;
         try {
-            profileData = await ProfileModel.find({ userId: interaction.user.id });
+            profileData = await profileModel.find({ userId: interaction.user.id });
             if (!profileData) {
-                let profile = await ProfileModel.create({
+                let profile = await profileModel.create({
                     userId: interaction.user.id,
                     guildId: interaction.guild.id,
                     experience: 0
