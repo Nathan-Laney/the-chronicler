@@ -62,6 +62,9 @@ module.exports = {
 
       // console.log("Amount: ", amount);
       const profile = await profileModel.findOne({ userId: user });
+      if (!profile) {
+        return interaction.editReply("This character does not exist!");
+      }
       // console.log("Profile: ", profile);
       // console.log("Experience before update: ", profile.experience);
       const oldExperience = profile.experience;
@@ -82,7 +85,9 @@ module.exports = {
           new: true, // This option returns the modified document rather than the original.
         }
       );
-
+      if (!result) {
+        return interaction.editReply("This character does not exist!");
+      }
       const newExperience = result.experience;
 
       // if (!result) {
@@ -113,6 +118,9 @@ module.exports = {
         ownerId: user.id,
         characterName: target,
       });
+      if (!character) {
+        return interaction.editReply("This character does not exist!");
+      }
       // console.log("Profile: ", profile);
       // console.log("Experience before update: ", profile.experience);
       const oldExperience = character.experience;
@@ -125,17 +133,21 @@ module.exports = {
           $set: {
             experience: amount,
           },
+          $push: {
+            missions: mission,
+          },
         },
         {
           new: true, // This option returns the modified document rather than the original.
         }
       );
-
-      const newExperience = result.experience;
-
       if (!result) {
         return interaction.editReply("This character does not exist!");
       }
+      const newExperience = result.experience;
+      const experienceGained = newExperience - oldExperience;
+      console.log("Experience gained: ", experienceGained);
+
       return interaction.editReply(
         `Added ${amount} XP to ${target} from ${mission}.`
       );
