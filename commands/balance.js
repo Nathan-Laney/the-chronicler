@@ -7,7 +7,7 @@ module.exports={
     async execute(interaction, profileData){
         const {experience} = profileData;
         const username = interaction.user.username;
-
+        
         await interaction.reply(`${username}, your balance is ${experience}.`);
     }
 }

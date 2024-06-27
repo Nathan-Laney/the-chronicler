@@ -8,8 +8,9 @@ module.exports = {
         // Grab the profile data of the user who sent the command
         let profileData;
         try {
-            profileData = await profileModel.find({ userId: interaction.user.id });
+            profileData = await profileModel.findOne({ userId: interaction.user.id });
             if (!profileData) {
+                console.log("Creating a new profile for user " + interaction.user.id + " in guild " + interaction.guild.id)
                 let profile = await profileModel.create({
                     userId: interaction.user.id,
                     guildId: interaction.guild.id,

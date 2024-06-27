@@ -16,5 +16,5 @@ const profileSchema = new mongoose.Schema({
     }
 });
 
-const model = mongoose.model("chronicler-db", profileSchema);
+const model = mongoose.model("profiles", profileSchema);
 module.exports = model
