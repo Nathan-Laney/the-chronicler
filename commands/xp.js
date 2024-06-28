@@ -1,11 +1,12 @@
 const { SlashCommandBuilder } = require("discord.js");
 const profileModel = require("../models/profileSchema");
 const characterModel = require("../models/characterSchema");
+const calculateGainedGPAndLevel = require("../experienceTable");
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName("addxp")
-    .setDescription("Add XP to a user.")
+    .setName("xp")
+    .setDescription("Manage your XP.")
     .addSubcommand((subcommand) =>
       subcommand
         .setName("character")
@@ -122,7 +123,7 @@ module.exports = {
         return interaction.editReply("This character does not exist!");
       }
       // console.log("Profile: ", profile);
-      // console.log("Experience before update: ", profile.experience);
+      // console.log("Character before update: ", character);
       const oldExperience = character.experience;
       const result = await characterModel.findOneAndUpdate(
         {
@@ -130,7 +131,7 @@ module.exports = {
           characterName: target,
         },
         {
-          $set: {
+          $inc: {
             experience: amount,
           },
           $push: {
@@ -145,11 +146,12 @@ module.exports = {
         return interaction.editReply("This character does not exist!");
       }
       const newExperience = result.experience;
+      // console.log("Character after update: ", result);
       const experienceGained = newExperience - oldExperience;
-      console.log("Experience gained: ", experienceGained);
-
+      // console.log("Experience gained: ", experienceGained);
+      const earnings = calculateGainedGPAndLevel(oldExperience, newExperience);
       return interaction.editReply(
-        `Added ${amount} XP to ${target} from ${mission}.`
+        `Added **${amount}** XP to **${target}** from \`${mission}\`. \n**${target}** now has a total of **${newExperience}** XP, gains **${earnings.gpGained}** GP and is now level **${earnings.characterLevel}**.`
       );
     }
   },
