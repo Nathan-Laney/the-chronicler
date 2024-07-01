@@ -181,8 +181,17 @@ module.exports = {
       }
 
       const newExperience = result.experience;
-      const experienceGained = newExperience - oldExperience;
       const earnings = calculateGainedGPAndLevel(oldExperience, newExperience);
+      const finalUpdate = await characterModel.findOneAndUpdate(
+        {
+          ownerId: user,
+          characterName: character_name,
+        },
+        {
+          $set: { level: earnings.characterLevel },
+        },
+        { new: true }
+      );
 
       return interaction.editReply(
         `${group === "add" ? "Added" : "Removed"} **${amount}** XP ${

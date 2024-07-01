@@ -213,13 +213,13 @@ module.exports = {
       }
 
       if (subcommand === "addcharacter" || subcommand === "removecharacter") {
-        console.log(targetUser.id, characterName, amount, mission);
+        // console.log(targetUser.id, characterName, amount, mission);
         const character = await characterModel.findOne({
           ownerId: targetUser.id,
           characterName: characterName,
         });
         if (!character) {
-          console.log("You were right");
+          //   console.log("You were right");
           return interaction.editReply("This character does not exist!");
         }
 
@@ -248,10 +248,19 @@ module.exports = {
         }
 
         const newExperience = result.experience;
-        const experienceGained = newExperience - oldExperience;
         const earnings = calculateGainedGPAndLevel(
           oldExperience,
           newExperience
+        );
+        const finalUpdate = await characterModel.findOneAndUpdate(
+          {
+            ownerId: targetUser.id,
+            characterName: characterName,
+          },
+          {
+            $set: { level: earnings.characterLevel },
+          },
+          { new: true }
         );
 
         return interaction.editReply(
