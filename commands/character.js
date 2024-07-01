@@ -124,13 +124,12 @@ module.exports = {
         });
       }
     } else if (subcommand === "list") {
-      const targetUser =
-        interaction.options.getUser("user") || interaction.user;
+      const targetUser = interaction.options.getUser("user") || interaction.user;
       try {
         const characterData = await characterModel.find({
           ownerId: targetUser.id,
         });
-
+    
         if (characterData.length === 0) {
           await interaction.reply({
             content: `${
@@ -141,12 +140,12 @@ module.exports = {
           });
           return;
         }
-
+    
         let characterList = "";
         characterData.forEach((character) => {
-          characterList += `\`${character.characterName}\`\n`;
+          characterList += `\`${character.characterName}\`\nXP: **${character.experience}**, Level **${character.level}**, \nMissions: ${character.missions.join(", ")}\n\n`;
         });
-
+    
         await interaction.reply({
           content: `> **${targetUser.username}'s Characters**\n${characterList}`,
         });
@@ -158,5 +157,5 @@ module.exports = {
         });
       }
     }
-  },
+  }
 };
