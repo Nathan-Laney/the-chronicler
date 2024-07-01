@@ -100,11 +100,29 @@ module.exports = {
                 .setRequired(true)
             )
         )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("transfer")
+        .setDescription("Transfer XP from your bank to a character.")
+        .addStringOption((option) =>
+          option
+            .setName("character_name")
+            .setDescription("The character to transfer XP to.")
+            .setRequired(true)
+        )
+        .addIntegerOption((option) =>
+          option
+            .setName("amount")
+            .setDescription("The amount of XP to transfer.")
+            .setRequired(true)
+            .setMinValue(1)
+        )
     ),
   async execute(interaction) {
     await interaction.deferReply();
-    const group = interaction.options.getSubcommandGroup();
     const subcommand = interaction.options.getSubcommand();
+    const group = interaction.options.getSubcommandGroup(false);
 
     const user = interaction.user.id;
     const amount = interaction.options.getInteger("amount");
@@ -201,6 +219,68 @@ module.exports = {
         } **${earnings.gpGained}** GP and is now level **${
           earnings.characterLevel
         }**.`
+      );
+    }
+
+    if (subcommand === "transfer") {
+      const character_name = interaction.options.getString("character_name");
+      const profile = await profileModel.findOne({ userId: user });
+
+      if (!profile) {
+        return interaction.editReply("This profile does not exist!");
+      }
+
+      if (profile.experience < amount) {
+        return interaction.editReply(
+          `You do not have enough XP in your bank. You currently have ${profile.experience} XP in your bank.`
+        );
+      }
+
+      const character = await characterModel.findOne({
+        ownerId: user,
+        characterName: character_name,
+      });
+
+      if (!character) {
+        return interaction.editReply("This character does not exist!");
+      }
+
+      const oldExperience = character.experience;
+
+      // Deduct XP from the user's bank and add it to the character's experience
+      await profileModel.findOneAndUpdate(
+        { userId: user },
+        { $inc: { experience: -amount } }
+      );
+
+      const result = await characterModel.findOneAndUpdate(
+        {
+          ownerId: user,
+          characterName: character_name,
+        },
+        {
+          $inc: { experience: amount },
+        },
+        { new: true }
+      );
+
+      const newExperience = result.experience;
+      const earnings = calculateGainedGPAndLevel(oldExperience, newExperience);
+
+      // Update the character's level
+      await characterModel.findOneAndUpdate(
+        {
+          ownerId: user,
+          characterName: character_name,
+        },
+        {
+          $set: { level: earnings.characterLevel },
+        },
+        { new: true }
+      );
+
+      return interaction.editReply(
+        `Transferred **${amount}** XP from your bank to **${character_name}**. \n**${character_name}** now has a total of **${newExperience}** XP, gains **${earnings.gpGained}** GP, and is now level **${earnings.characterLevel}**.`
       );
     }
   },
