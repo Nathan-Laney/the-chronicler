@@ -100,6 +100,14 @@ module.exports = {
           return;
         }
 
+        // Add half of the character's experience to the owner's bank, rounded down.
+        const experienceToAdd = Math.floor(characterData.experience / 2);
+        await profileModel.findOneAndUpdate(
+          { userId: interaction.user.id },
+          { $inc: { experience: experienceToAdd } },
+          { new: true }
+        );
+
         await characterModel.deleteOne({
           ownerId: interaction.user.id,
           characterName: characterName,
