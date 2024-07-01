@@ -17,7 +17,7 @@ module.exports = {
             .setDescription("Add XP to a character.")
             .addStringOption((option) =>
               option
-                .setName("target")
+                .setName("character_name")
                 .setDescription("The character to add XP to.")
                 .setRequired(true)
             )
@@ -64,7 +64,7 @@ module.exports = {
             .setDescription("Remove XP from a character.")
             .addStringOption((option) =>
               option
-                .setName("target")
+                .setName("character_name")
                 .setDescription("The character to remove XP from.")
                 .setRequired(true)
             )
@@ -111,7 +111,7 @@ module.exports = {
     const mission = interaction.options.getString("mission");
 
     if (subcommand === "bank") {
-      const target = interaction.member.nickname;
+      const character_name = interaction.member.nickname;
       const profile = await profileModel.findOne({ userId: user });
       if (!profile) {
         return interaction.editReply("This profile does not exist!");
@@ -141,15 +141,15 @@ module.exports = {
       return interaction.editReply(
         `${group === "add" ? "Added" : "Removed"} ${amount} XP ${
           group === "add" ? "to" : "from"
-        } ${target}'s bank from ${mission}.`
+        } ${character_name}'s bank from ${mission}.`
       );
     }
 
     if (subcommand === "character") {
-      const target = interaction.options.getString("target");
+      const character_name = interaction.options.getString("character_name");
       const character = await characterModel.findOne({
         ownerId: user,
-        characterName: target,
+        characterName: character_name,
       });
       if (!character) {
         return interaction.editReply("This character does not exist!");
@@ -170,7 +170,7 @@ module.exports = {
       const result = await characterModel.findOneAndUpdate(
         {
           ownerId: user,
-          characterName: target,
+          characterName: character_name,
         },
         update,
         { new: true }
@@ -187,7 +187,7 @@ module.exports = {
       return interaction.editReply(
         `${group === "add" ? "Added" : "Removed"} **${amount}** XP ${
           group === "add" ? "to" : "from"
-        } **${target}** from \`${mission}\`. \n**${target}** now has a total of **${newExperience}** XP, ${
+        } **${character_name}** from \`${mission}\`. \n**${character_name}** now has a total of **${newExperience}** XP, ${
           group === "add" ? "gains" : "loses"
         } **${earnings.gpGained}** GP and is now level **${
           earnings.characterLevel

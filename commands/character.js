@@ -106,7 +106,7 @@ module.exports = {
         });
 
         await interaction.reply({
-          content: `Character **${characterName}** deleted. *They had a good run.*\n**${characterName}** had \`${characterData.experience}\` XP when they were removed.`,
+          content: `Character **${characterName}** deleted. *They had a good run.*\n**${characterName}** had \`${characterData.experience}\` XP when they were removed. \nRetired characters return half XP. Use /xp add bank to add half of this XP to your bank.`,
         });
       } catch (error) {
         console.error(`Error deleting character: ${error}`);
