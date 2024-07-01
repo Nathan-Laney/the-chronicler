@@ -11,7 +11,6 @@ module.exports = {
       subcommand
         .setName("create")
         .setDescription("Create a new character.")
-
         .addStringOption((option) =>
           option
             .setName("character_name")
@@ -34,17 +33,23 @@ module.exports = {
       subcommand
         .setName("list")
         .setDescription("List all characters that a user owns.")
+        .addUserOption((option) =>
+          option
+            .setName("user")
+            .setDescription("The user whose characters you want to list.")
+        )
     ),
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
+
     if (subcommand === "create") {
-      let characterData;
       const characterName = interaction.options.getString("character_name");
       try {
-        characterData = await characterModel.findOne({
+        const characterData = await characterModel.findOne({
           ownerId: interaction.user.id,
           characterName: characterName,
         });
+
         if (!characterData) {
           console.log(
             "Creating a new character for user " +
@@ -52,7 +57,8 @@ module.exports = {
               " in guild " +
               interaction.guild.id
           );
-          let character = await characterModel.create({
+
+          const character = await characterModel.create({
             ownerId: interaction.user.id,
             characterId: new mongoose.mongo.ObjectId(),
             guildId: interaction.guild.id,
@@ -60,9 +66,9 @@ module.exports = {
             level: 3,
             experience: 0,
           });
-          characterData = character;
+
           await interaction.reply({
-            content: `Character ${characterData.characterName} created.`,
+            content: `Character ${character.characterName} created.`,
             ephemeral: true,
           });
         } else {
@@ -70,20 +76,22 @@ module.exports = {
             content: "Character already exists.",
             ephemeral: true,
           });
-          return;
         }
       } catch (error) {
-        console.error(
-          `Error fetching character data in interactionCreate event: ${error}`
-        );
+        console.error(`Error creating character: ${error}`);
+        await interaction.reply({
+          content: "An error occurred while creating the character.",
+          ephemeral: true,
+        });
       }
     } else if (subcommand === "delete") {
       const characterName = interaction.options.getString("character_name");
       try {
-        let characterData = await characterModel.findOne({
+        const characterData = await characterModel.findOne({
           ownerId: interaction.user.id,
           characterName: characterName,
         });
+
         if (!characterData) {
           await interaction.reply({
             content: "Character not found.",
@@ -91,44 +99,55 @@ module.exports = {
           });
           return;
         }
+
         await characterModel.deleteOne({
           ownerId: interaction.user.id,
           characterName: characterName,
         });
+
         await interaction.reply({
           content: `Character **${characterName}** deleted. *They had a good run.*\n**${characterName}** had \`${characterData.experience}\` XP when they were removed.`,
-          //   ephemeral: true,
         });
       } catch (error) {
-        console.error(
-          `Error deleting character data in interactionCreate event: ${error}`
-        );
+        console.error(`Error deleting character: ${error}`);
+        await interaction.reply({
+          content: "An error occurred while deleting the character.",
+          ephemeral: true,
+        });
       }
     } else if (subcommand === "list") {
-      let characterData;
+      const targetUser =
+        interaction.options.getUser("user") || interaction.user;
       try {
-        characterData = await characterModel.find({
-          ownerId: interaction.user.id,
+        const characterData = await characterModel.find({
+          ownerId: targetUser.id,
         });
+
         if (characterData.length === 0) {
           await interaction.reply({
-            content: "You don't have any characters.",
-            // ephemeral: true,
+            content: `${
+              targetUser.id === interaction.user.id
+                ? "You don't"
+                : `${targetUser.username} doesn't`
+            } have any characters.`,
           });
           return;
         }
+
         let characterList = "";
         characterData.forEach((character) => {
           characterList += `\`${character.characterName}\`\n`;
         });
+
         await interaction.reply({
-          content: `> **${interaction.member.nickname}'s Characters**\n${characterList}`,
-          //   ephemeral: true,
+          content: `> **${targetUser.username}'s Characters**\n${characterList}`,
         });
       } catch (error) {
-        console.error(
-          `Error fetching character data in interactionCreate event: ${error}`
-        );
+        console.error(`Error fetching character data: ${error}`);
+        await interaction.reply({
+          content: "An error occurred while fetching the character data.",
+          ephemeral: true,
+        });
       }
     }
   },

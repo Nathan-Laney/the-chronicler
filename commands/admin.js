@@ -2,6 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require("discord.js");
 const profileModel = require("../models/profileSchema");
 const characterModel = require("../models/characterSchema");
 const calculateGainedGPAndLevel = require("../experienceTable");
+const mongoose = require("mongoose");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -263,6 +264,8 @@ module.exports = {
       if (subcommand === "add") {
         const newCharacter = new characterModel({
           ownerId: targetUser.id,
+          characterId: new mongoose.mongo.ObjectId(),
+          guildId: interaction.guild.id,
           characterName: characterName,
           experience: 0,
           missions: [],
