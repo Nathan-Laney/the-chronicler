@@ -8,6 +8,8 @@ module.exports = {
     const { experience } = profileData;
     const username = interaction.member.nickname;
 
-    await interaction.reply(`${username}, you have ${experience} in the bank.`);
+    await interaction.reply(
+      `**${username}**, you have \`${experience}\` XP in the bank.`
+    );
   },
 };

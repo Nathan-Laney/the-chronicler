@@ -74,7 +74,7 @@ module.exports = {
             )
             .addStringOption((option) =>
               option
-                .setName("target")
+                .setName("character_name")
                 .setDescription("The character to add XP to.")
                 .setRequired(true)
             )
@@ -104,7 +104,7 @@ module.exports = {
             )
             .addStringOption((option) =>
               option
-                .setName("target")
+                .setName("character_name")
                 .setDescription("The character to remove XP from.")
                 .setRequired(true)
             )
@@ -139,8 +139,6 @@ module.exports = {
             .addStringOption((option) =>
               option
                 .setName("character_name")
-
-                .setName("character_name")
                 .setDescription("The name of the character.")
                 .setRequired(true)
             )
@@ -171,9 +169,7 @@ module.exports = {
     const targetUser = interaction.options.getUser("user");
     const amount = interaction.options.getInteger("amount");
     const mission = interaction.options.getString("mission");
-    const characterName =
-      interaction.options.getString("character_name") ||
-      interaction.options.getString("target");
+    const characterName = interaction.options.getString("character_name");
 
     if (targetUser) {
       let targetProfile = await profileModel.findOne({ userId: targetUser.id });
@@ -217,11 +213,13 @@ module.exports = {
       }
 
       if (subcommand === "addcharacter" || subcommand === "removecharacter") {
+        console.log(targetUser.id, characterName, amount, mission);
         const character = await characterModel.findOne({
           ownerId: targetUser.id,
           characterName: characterName,
         });
         if (!character) {
+          console.log("You were right");
           return interaction.editReply("This character does not exist!");
         }
 
@@ -283,7 +281,7 @@ module.exports = {
 
         await newCharacter.save();
         return interaction.editReply(
-          `Character **${characterName}** has been created for ${targetUser.username}.`
+          `Character **${characterName}** has been created for **${targetUser.username}**.`
         );
       }
 
@@ -298,7 +296,7 @@ module.exports = {
         }
 
         return interaction.editReply(
-          `Character **${characterName}** has been deleted for ${targetUser.username}.`
+          `Character **${characterName}** has been deleted for **${targetUser.username}**.`
         );
       }
     }

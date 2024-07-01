@@ -139,9 +139,9 @@ module.exports = {
 
       const newExperience = result.experience;
       return interaction.editReply(
-        `${group === "add" ? "Added" : "Removed"} ${amount} XP ${
+        `${group === "add" ? "Added" : "Removed"} \`${amount}\` XP ${
           group === "add" ? "to" : "from"
-        } ${character_name}'s bank from ${mission}.`
+        } **${character_name}**'s bank from \`${mission}\`.`
       );
     }
 
