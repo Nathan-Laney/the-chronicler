@@ -1,11 +1,11 @@
 const { Events } = require("discord.js");
 const profileModel = require("../models/profileSchema");
-const characterModel = require("../models/characterSchema");
 
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
     if (!interaction.isChatInputCommand()) return;
+
     // Grab the profile data of the user who sent the command
     let profileData;
     try {

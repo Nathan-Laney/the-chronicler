@@ -175,6 +175,16 @@ module.exports = {
       interaction.options.getString("character_name") ||
       interaction.options.getString("target");
 
+    if (targetUser) {
+      let targetProfile = await profileModel.findOne({ userId: targetUser.id });
+      if (!targetProfile) {
+        targetProfile = await profileModel.create({
+          userId: targetUser.id,
+          guildId: interaction.guild.id,
+          experience: 0,
+        });
+      }
+    }
     if (group === "xp") {
       if (subcommand === "addbank" || subcommand === "removebank") {
         const profile = await profileModel.findOne({ userId: targetUser.id });
