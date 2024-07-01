@@ -38,6 +38,45 @@ module.exports = {
             .setName("user")
             .setDescription("The user whose characters you want to list.")
         )
+    )
+    .addSubcommandGroup((group) =>
+      group
+        .setName("mission")
+        .setDescription("Manage character missions.")
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("add")
+            .setDescription("Add a mission to a character.")
+            .addStringOption((option) =>
+              option
+                .setName("character_name")
+                .setDescription("The name of the character.")
+                .setRequired(true)
+            )
+            .addStringOption((option) =>
+              option
+                .setName("mission")
+                .setDescription("The mission to add.")
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("remove")
+            .setDescription("Remove a mission from a character.")
+            .addStringOption((option) =>
+              option
+                .setName("character_name")
+                .setDescription("The name of the character.")
+                .setRequired(true)
+            )
+            .addStringOption((option) =>
+              option
+                .setName("mission")
+                .setDescription("The mission to remove.")
+                .setRequired(true)
+            )
+        )
     ),
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
@@ -124,12 +163,13 @@ module.exports = {
         });
       }
     } else if (subcommand === "list") {
-      const targetUser = interaction.options.getUser("user") || interaction.user;
+      const targetUser =
+        interaction.options.getUser("user") || interaction.user;
       try {
         const characterData = await characterModel.find({
           ownerId: targetUser.id,
         });
-    
+
         if (characterData.length === 0) {
           await interaction.reply({
             content: `${
@@ -140,12 +180,12 @@ module.exports = {
           });
           return;
         }
-    
+
         let characterList = "";
         characterData.forEach((character) => {
-          characterList += `\`${character.characterName}\`\nXP: **${character.experience}**, Level **${character.level}**, \nMissions: ${character.missions.join(", ")}\n\n`;
+          characterList += `\`${character.characterName}\`\nLevel: ${character.level}\nXP: ${character.experience}\nMissions: ${character.missions.join(", ")}\n\n`;
         });
-    
+
         await interaction.reply({
           content: `> **${targetUser.username}'s Characters**\n${characterList}`,
         });
@@ -156,6 +196,49 @@ module.exports = {
           ephemeral: true,
         });
       }
+    } else if (subcommand === "add" || subcommand === "remove") {
+      const characterName = interaction.options.getString("character_name");
+      const mission = interaction.options.getString("mission");
+      try {
+        const character = await characterModel.findOne({
+          ownerId: interaction.user.id,
+          characterName: characterName,
+        });
+
+        if (!character) {
+          await interaction.reply({
+            content: "Character not found.",
+            ephemeral: true,
+          });
+          return;
+        }
+
+        if (subcommand === "add") {
+          await characterModel.updateOne(
+            { ownerId: interaction.user.id, characterName: characterName },
+            { $push: { missions: mission } }
+          );
+          await interaction.reply({
+            content: `Mission \`${mission}\` added to character **${characterName}**.`,
+            ephemeral: true,
+          });
+        } else if (subcommand === "remove") {
+          await characterModel.updateOne(
+            { ownerId: interaction.user.id, characterName: characterName },
+            { $pull: { missions: mission } }
+          );
+          await interaction.reply({
+            content: `Mission \`${mission}\` removed from character **${characterName}**.`,
+            ephemeral: true,
+          });
+        }
+      } catch (error) {
+        console.error(`Error updating character missions: ${error}`);
+        await interaction.reply({
+          content: "An error occurred while updating the character missions.",
+          ephemeral: true,
+        });
+      }
     }
-  }
+  },
 };
