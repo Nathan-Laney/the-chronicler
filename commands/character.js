@@ -102,7 +102,7 @@ module.exports = {
 
         // Add half of the character's experience to the owner's bank, rounded down.
         const experienceToAdd = Math.floor(characterData.experience / 2);
-        await profileModel.findOneAndUpdate(
+        const updatedProfile = await profileModel.findOneAndUpdate(
           { userId: interaction.user.id },
           { $inc: { experience: experienceToAdd } },
           { new: true }
@@ -114,7 +114,7 @@ module.exports = {
         });
 
         await interaction.reply({
-          content: `Character **${characterName}** deleted. *They had a good run.*\n**${characterName}** had \`${characterData.experience}\` XP when they were removed. \nRetired characters return half XP. Use /xp add bank to add half of this XP to your bank.`,
+          content: `Character **${characterName}** deleted. *They had a good run.*\n**${characterName}** had \`${characterData.experience}\` XP when they were removed. Retiring characters returns half XP, rounded down.\nYou gain \`${experienceToAdd}\` experience, and now have \`${updatedProfile.experience}\` XP in your bank.`,
         });
       } catch (error) {
         console.error(`Error deleting character: ${error}`);
