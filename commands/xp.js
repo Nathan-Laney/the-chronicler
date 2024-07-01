@@ -248,7 +248,7 @@ module.exports = {
       const oldExperience = character.experience;
 
       // Deduct XP from the user's bank and add it to the character's experience
-      await profileModel.findOneAndUpdate(
+      let newProfile = await profileModel.findOneAndUpdate(
         { userId: user },
         { $inc: { experience: -amount } }
       );
@@ -280,7 +280,7 @@ module.exports = {
       );
 
       return interaction.editReply(
-        `Transferred **${amount}** XP from your bank to **${character_name}**. \n**${character_name}** now has a total of **${newExperience}** XP, gains **${earnings.gpGained}** GP, and is now level **${earnings.characterLevel}**.`
+        `Transferred **${amount}** XP from your bank to **${character_name}**. You have \`${newProfile.experience}\` XP left in your bank.\n**${character_name}** now has a total of **${newExperience}** XP, gains **${earnings.gpGained}** GP, and is now level **${earnings.characterLevel}**.`
       );
     }
   },
