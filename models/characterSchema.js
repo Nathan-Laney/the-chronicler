@@ -30,6 +30,10 @@ const profileSchema = new mongoose.Schema({
     type: Array,
     default: [],
   },
+  class: {
+    type: String,
+    required: false,
+  }, 
 });
 
 const model = mongoose.model("characters", profileSchema);

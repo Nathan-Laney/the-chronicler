@@ -3,60 +3,151 @@ const mongoose = require("mongoose");
 const profileModel = require("../models/profileSchema");
 const characterModel = require("../models/characterSchema");
 
+// Define a slash command to manage characters.
 module.exports = {
   data: new SlashCommandBuilder()
+    // Set the name of the slash command.
     .setName("character")
+    // Set the description for the slash command.
     .setDescription("Manage characters.")
+
+    // Add a subcommand to create a new character.
     .addSubcommand((subcommand) =>
       subcommand
+        // Set the name of the subcommand.
         .setName("create")
+        // Set the description for the subcommand.
         .setDescription("Create a new character.")
+
+        // Add an option to specify the character's name.
         .addStringOption((option) =>
           option
+            // Set the name of the option.
             .setName("character_name")
+            // Set the description for the option.
             .setDescription("The name of the character.")
+
+            // Mark this option as required.
             .setRequired(true)
         )
     )
+
+    // Add a subcommand to delete an existing character.
     .addSubcommand((subcommand) =>
       subcommand
+        // Set the name of the subcommand.
         .setName("delete")
+        // Set the description for the subcommand.
         .setDescription("Delete a character.")
+
+        // Add an option to specify the character's name.
         .addStringOption((option) =>
           option
+            // Set the name of the option.
             .setName("character_name")
+            // Set the description for the option.
             .setDescription("The name of the character.")
+
+            // Mark this option as required.
             .setRequired(true)
         )
     )
+
+    // Add a subcommand to list all characters owned by a user.
     .addSubcommand((subcommand) =>
       subcommand
+        // Set the name of the subcommand.
         .setName("list")
+        // Set the description for the subcommand.
         .setDescription("List all characters that a user owns.")
+
+        // Add an option to specify the user whose characters should be listed.
         .addUserOption((option) =>
           option
+            // Set the name of the option.
             .setName("user")
+            // Set the description for the option.
             .setDescription("The user whose characters you want to list.")
         )
     )
+
+    // Add a subcommand group for managing character classes.
     .addSubcommandGroup((group) =>
       group
-        .setName("mission")
-        .setDescription("Manage character missions.")
+        // Set the name of the subgroup.
+        .setName("class")
+        // Set the description for the subgroup.
+        .setDescription("Manage character classes.")
+
+        // Add a subcommand to add a class to an existing character.
         .addSubcommand((subcommand) =>
           subcommand
-            .setName("add")
-            .setDescription("Add a mission to a character.")
+            // Set the name of the subcommand.
+            .setName("set")
+            // Set the description for the subcommand.
+            .setDescription("Add a class to a character.")
+
+            // Add options to specify the character's name and the class to add.
             .addStringOption((option) =>
               option
+                // Set the name of the option.
                 .setName("character_name")
+                // Set the description for the option.
                 .setDescription("The name of the character.")
+
+                // Mark this option as required.
                 .setRequired(true)
             )
+
             .addStringOption((option) =>
               option
+                // Set the name of the option.
+                .setName("class")
+                // Set the description for the option.
+                .setDescription("The class to add.")
+
+                // Mark this option as required.
+                .setRequired(true)
+            )
+        )
+    )
+
+    // Add a subcommand group for managing character missions.
+    .addSubcommandGroup((group) =>
+      group
+        // Set the name of the subgroup.
+        .setName("mission")
+        // Set the description for the subgroup.
+        .setDescription("Manage character missions.")
+
+        // Add a subcommand to add a mission to an existing character.
+        .addSubcommand((subcommand) =>
+          subcommand
+            // Set the name of the subcommand.
+            .setName("add")
+            // Set the description for the subcommand.
+            .setDescription("Add a mission to a character.")
+
+            // Add options to specify the character's name and the mission to add.
+            .addStringOption((option) =>
+              option
+                // Set the name of the option.
+                .setName("character_name")
+                // Set the description for the option.
+                .setDescription("The name of the character.")
+
+                // Mark this option as required.
+                .setRequired(true)
+            )
+
+            .addStringOption((option) =>
+              option
+                // Set the name of the option.
                 .setName("mission")
+                // Set the description for the option.
                 .setDescription("The mission to add.")
+
+                // Mark this option as required.
                 .setRequired(true)
             )
         )
@@ -79,11 +170,19 @@ module.exports = {
         )
     ),
   async execute(interaction) {
+    // Get the subcommand name
     const subcommand = interaction.options.getSubcommand();
+    const subcommandGroup = interaction.options.getSubcommandGroup();
 
+    /**
+     * Handle character creation.
+     */
     if (subcommand === "create") {
+      // Get the character name from the options
       const characterName = interaction.options.getString("character_name");
+
       try {
+        // Find a character with the same owner and name
         const characterData = await characterModel.findOne({
           ownerId: interaction.user.id,
           characterName: characterName,
@@ -92,11 +191,12 @@ module.exports = {
         if (!characterData) {
           console.log(
             "Creating a new character for user " +
-              interaction.user.id +
-              " in guild " +
-              interaction.guild.id
+            interaction.user.id +
+            " in guild " +
+            interaction.guild.id
           );
 
+          // Create a new character
           const character = await characterModel.create({
             ownerId: interaction.user.id,
             characterId: new mongoose.mongo.ObjectId(),
@@ -106,6 +206,7 @@ module.exports = {
             experience: 0,
           });
 
+          // Reply to the user with a success message
           await interaction.reply({
             content: `Character ${character.characterName} created.`,
             ephemeral: true,
@@ -118,11 +219,16 @@ module.exports = {
         }
       } catch (error) {
         console.error(`Error creating character: ${error}`);
+
+        // Reply to the user with an error message
         await interaction.reply({
           content: "An error occurred while creating the character.",
           ephemeral: true,
         });
       }
+      /**
+       * Handle character deletion.
+       */
     } else if (subcommand === "delete") {
       const characterName = interaction.options.getString("character_name");
       try {
@@ -162,6 +268,9 @@ module.exports = {
           ephemeral: true,
         });
       }
+      /**
+       * Handle listing characters.
+       */
     } else if (subcommand === "list") {
       const targetUser =
         interaction.options.getUser("user") || interaction.user;
@@ -172,18 +281,17 @@ module.exports = {
 
         if (characterData.length === 0) {
           await interaction.reply({
-            content: `${
-              targetUser.id === interaction.user.id
-                ? "You don't"
-                : `${targetUser.username} doesn't`
-            } have any characters.`,
+            content: `${targetUser.id === interaction.user.id
+              ? "You don't"
+              : `${targetUser.username} doesn't`
+              } have any characters.`,
           });
           return;
         }
 
         let characterList = "";
         characterData.forEach((character) => {
-          characterList += `\`${character.characterName}\`\nLevel: ${character.level}\nXP: ${character.experience}\nMissions: ${character.missions.join(", ")}\n\n`;
+          characterList += `\`${character.characterName}\`\nLevel: ${character.level}\nXP: ${character.experience}\nClass: ${character.class || "Not Set"}\nMissions: ${character.missions.join(", ")}\n\n`;
         });
 
         await interaction.reply({
@@ -196,49 +304,98 @@ module.exports = {
           ephemeral: true,
         });
       }
-    } else if (subcommand === "add" || subcommand === "remove") {
-      const characterName = interaction.options.getString("character_name");
-      const mission = interaction.options.getString("mission");
-      try {
-        const character = await characterModel.findOne({
-          ownerId: interaction.user.id,
-          characterName: characterName,
-        });
+      /**
+       * Handle adding or removing missions.
+       */
 
-        if (!character) {
+      // If subcommand group is mission,
+    } else if (subcommandGroup === "missions") {
+      if (subcommand === "add" || subcommand === "remove") {
+        const characterName = interaction.options.getString("character_name");
+        const mission = interaction.options.getString("mission");
+        try {
+          const character = await characterModel.findOne({
+            ownerId: interaction.user.id,
+            characterName: characterName,
+          });
+
+          if (!character) {
+            await interaction.reply({
+              content: "Character not found.",
+              ephemeral: true,
+            });
+            return;
+          }
+
+          if (subcommand === "add") {
+            await characterModel.updateOne(
+              { ownerId: interaction.user.id, characterName: characterName },
+              { $push: { missions: mission } }
+            );
+            await interaction.reply({
+              content: `Mission **${mission}** added to character **${characterName}**.`,
+              ephemeral: true,
+            });
+          } else if (subcommand === "remove") {
+            await characterModel.updateOne(
+              { ownerId: interaction.user.id, characterName: characterName },
+              { $pull: { missions: mission } }
+            );
+            await interaction.reply({
+              content: `Mission **${mission}** removed from character **${characterName}**.`,
+              ephemeral: true,
+            });
+          }
+        } catch (error) {
+          console.error(`Error updating character missions: ${error}`);
           await interaction.reply({
-            content: "Character not found.",
+            content: "An error occurred while updating the character missions.",
             ephemeral: true,
           });
-          return;
         }
+      }
+      /**
+       * Handle setting class.
+       */
 
-        if (subcommand === "add") {
+      // if subcommand group is class...
+
+    } else if (subcommandGroup === "class") {
+      if (subcommand === "set") {
+        const characterName = interaction.options.getString("character_name");
+        try {
+          const character = await characterModel.findOne({
+            ownerId: interaction.user.id,
+            characterName: characterName,
+          });
+
+          if (!character) {
+            await interaction.reply({
+              content: "Character not found.",
+              ephemeral: true,
+            });
+            return;
+          }
+
+          const classString = interaction.options.getString("class");
           await characterModel.updateOne(
             { ownerId: interaction.user.id, characterName: characterName },
-            { $push: { missions: mission } }
+            { $set: { class: classString } }
           );
+
           await interaction.reply({
-            content: `Mission \`${mission}\` added to character **${characterName}**.`,
-            ephemeral: true,
+            content: `Character **${characterName}**'s class set to \`${classString}\`.`,
+
           });
-        } else if (subcommand === "remove") {
-          await characterModel.updateOne(
-            { ownerId: interaction.user.id, characterName: characterName },
-            { $pull: { missions: mission } }
-          );
+        } catch (error) {
+          console.error(`Error setting character's class: ${error}`);
           await interaction.reply({
-            content: `Mission \`${mission}\` removed from character **${characterName}**.`,
+            content: "An error occurred while setting the character's class.",
             ephemeral: true,
           });
         }
-      } catch (error) {
-        console.error(`Error updating character missions: ${error}`);
-        await interaction.reply({
-          content: "An error occurred while updating the character missions.",
-          ephemeral: true,
-        });
       }
     }
   },
 };
+
