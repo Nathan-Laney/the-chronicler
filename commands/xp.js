@@ -159,7 +159,7 @@ module.exports = {
       return interaction.editReply(
         `${group === "add" ? "Added" : "Removed"} \`${amount}\` XP ${
           group === "add" ? "to" : "from"
-        } **${character_name}**'s bank from \`${mission}\`.`
+        } **${character_name}**'s bank from **${mission}**.`
       );
     }
 
@@ -214,7 +214,7 @@ module.exports = {
       return interaction.editReply(
         `${group === "add" ? "Added" : "Removed"} **${amount}** XP ${
           group === "add" ? "to" : "from"
-        } **${character_name}** from \`${mission}\`. \n**${character_name}** now has a total of **${newExperience}** XP, ${
+        } **${character_name}** from **${mission}**. \n**${character_name}** now has a total of **${newExperience}** XP, ${
           group === "add" ? "gains" : "loses"
         } **${earnings.gpGained}** GP and is now level **${
           earnings.characterLevel
