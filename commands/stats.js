@@ -77,9 +77,10 @@ module.exports = {
             } else if (analyze === 'class') {
                 // Analyze by class
                 const classes = characterData.map(char => char.class).filter(cls => cls); // Filter out undefined/null classes
+                let correctedClasses = classes.map(classname => (classname.charAt(0).toUpperCase() + classname.slice(1)));
                 const classCounts = {};
 
-                classes.forEach(cls => {
+                correctedClasses.forEach(cls => {
                     classCounts[cls] = (classCounts[cls] || 0) + 1;
                 });
 
