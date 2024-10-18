@@ -309,7 +309,7 @@ module.exports = {
        */
 
       // If subcommand group is mission,
-    } else if (subcommandGroup === "missions") {
+    } else if (subcommandGroup === "mission") {
       if (subcommand === "add" || subcommand === "remove") {
         const characterName = interaction.options.getString("character_name");
         const mission = interaction.options.getString("mission");
