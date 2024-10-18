@@ -6,7 +6,7 @@ module.exports = {
     .setDescription("Prints the user's banked XP"),
   async execute(interaction, profileData) {
     const { experience } = profileData;
-    const username = interaction.user;
+    const username = interaction.user.displayName;
 
     await interaction.reply(
       `**${username}**, you have \`${experience}\` XP in the bank.`

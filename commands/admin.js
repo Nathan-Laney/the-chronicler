@@ -165,7 +165,7 @@ module.exports = {
     await interaction.deferReply();
     const group = interaction.options.getSubcommandGroup();
     const subcommand = interaction.options.getSubcommand();
-    const username = interaction.user.username;
+    const username = interaction.user.displayName;
     const targetUser = interaction.options.getUser("user");
     const amount = interaction.options.getInteger("amount");
     const mission = interaction.options.getString("mission");

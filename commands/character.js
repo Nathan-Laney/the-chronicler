@@ -273,7 +273,7 @@ module.exports = {
        */
     } else if (subcommand === "list") {
       const targetUser = interaction.options.getUser("user") || interaction.user;
-      const username = interaction.user;
+      const username = targetUser.displayName;
       try {
         const characterData = await characterModel.find({
           ownerId: targetUser.id,
