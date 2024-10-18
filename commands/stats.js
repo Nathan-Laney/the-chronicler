@@ -78,16 +78,18 @@ module.exports = {
                 // Analyze by class
                 const classes = characterData.map(char => char.class).filter(cls => cls); // Filter out undefined/null classes
                 let correctedClasses = classes.map(classname => (classname.charAt(0).toUpperCase() + classname.slice(1)));
+                correctedClasses.sort(); // Sort the classes alphabetically
                 const classCounts = {};
-
+            
                 correctedClasses.forEach(cls => {
                     classCounts[cls] = (classCounts[cls] || 0) + 1;
                 });
-
-                labels = Object.keys(classCounts); // Each unique class
+            
+                labels = correctedClasses; // Each unique class
                 dataCounts = Object.values(classCounts); // Number of characters per class
                 chartTitle = 'Character Class Distribution';
             }
+            
 
             // Generate chart data
             const data = {

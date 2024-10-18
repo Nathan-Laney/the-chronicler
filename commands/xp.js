@@ -129,7 +129,7 @@ module.exports = {
     const mission = interaction.options.getString("mission");
 
     if (subcommand === "bank") {
-      const character_name = interaction.member.nickname;
+      const username = interaction.member.displayName;
       const profile = await profileModel.findOne({ userId: user });
       if (!profile) {
         return interaction.editReply("This profile does not exist!");
@@ -159,7 +159,7 @@ module.exports = {
       return interaction.editReply(
         `${group === "add" ? "Added" : "Removed"} \`${amount}\` XP ${
           group === "add" ? "to" : "from"
-        } **${character_name}**'s bank from **${mission}**.`
+        } **${username}**'s bank from **${mission}**.`
       );
     }
 
