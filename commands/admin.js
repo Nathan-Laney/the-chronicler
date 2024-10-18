@@ -165,7 +165,7 @@ module.exports = {
     await interaction.deferReply();
     const group = interaction.options.getSubcommandGroup();
     const subcommand = interaction.options.getSubcommand();
-
+    const username = interaction.user.username;
     const targetUser = interaction.options.getUser("user");
     const amount = interaction.options.getInteger("amount");
     const mission = interaction.options.getString("mission");
@@ -208,7 +208,7 @@ module.exports = {
         return interaction.editReply(
           `${subcommand === "addbank" ? "Added" : "Removed"} ${amount} XP ${
             subcommand === "addbank" ? "to" : "from"
-          } ${targetUser.username}'s bank from ${mission}.`
+          } ${username}'s bank from ${mission}.`
         );
       }
 
@@ -290,7 +290,7 @@ module.exports = {
 
         await newCharacter.save();
         return interaction.editReply(
-          `Character **${characterName}** has been created for **${targetUser.username}**.`
+          `Character **${characterName}** has been created for **${username}**.`
         );
       }
 
@@ -305,7 +305,7 @@ module.exports = {
         }
 
         return interaction.editReply(
-          `Character **${characterName}** has been deleted for **${targetUser.username}**.`
+          `Character **${characterName}** has been deleted for **${username}**.`
         );
       }
     }

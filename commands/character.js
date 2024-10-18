@@ -272,8 +272,8 @@ module.exports = {
        * Handle listing characters.
        */
     } else if (subcommand === "list") {
-      const targetUser =
-        interaction.options.getUser("user") || interaction.user;
+      const targetUser = interaction.options.getUser("user") || interaction.user;
+      const username = interaction.user;
       try {
         const characterData = await characterModel.find({
           ownerId: targetUser.id,
@@ -283,7 +283,7 @@ module.exports = {
           await interaction.reply({
             content: `${targetUser.id === interaction.user.id
               ? "You don't"
-              : `${targetUser.username} doesn't`
+              : `${username} doesn't`
               } have any characters.`,
           });
           return;
@@ -295,7 +295,7 @@ module.exports = {
         });
 
         await interaction.reply({
-          content: `> **${targetUser.username}'s Characters**\n${characterList}`,
+          content: `> **${username}'s Characters**\n${characterList}`,
         });
       } catch (error) {
         console.error(`Error fetching character data: ${error}`);
