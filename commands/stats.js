@@ -86,7 +86,7 @@ module.exports = {
                 });
             
                 labels = correctedClasses; // Each unique class
-                dataCounts = Object.values(classCounts); // Number of characters per class
+                dataCounts = Object.values(correctedClasses); // Number of characters per class
                 chartTitle = 'Character Class Distribution';
             }
             
