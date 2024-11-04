@@ -32,7 +32,7 @@ module.exports = {
               option
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
-                .setRequired(true)
+                .setRequired(false)
             )
         )
         .addSubcommand((subcommand) =>
@@ -50,7 +50,7 @@ module.exports = {
               option
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
-                .setRequired(true)
+                .setRequired(false)
             )
         )
     )
@@ -79,7 +79,7 @@ module.exports = {
               option
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
-                .setRequired(true)
+                .setRequired(false)
             )
         )
         .addSubcommand((subcommand) =>
@@ -97,7 +97,7 @@ module.exports = {
               option
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
-                .setRequired(true)
+                .setRequired(false)
             )
         )
     )
@@ -137,12 +137,17 @@ module.exports = {
 
       let update;
       if (group === "add") {
-        update = { $inc: { experience: amount }, $push: { missions: mission } };
+        update = { $inc: { experience: amount } };
+        if (mission) {
+          update.$push = { missions: mission };
+        }
       } else if (group === "remove") {
         update = {
           $inc: { experience: -amount },
-          $pull: { missions: mission },
         };
+        if (mission) {
+          update.$pull = { missions: mission };
+        }
       }
 
       const result = await profileModel.findOneAndUpdate(
@@ -158,7 +163,7 @@ module.exports = {
       const newExperience = result.experience;
       return interaction.editReply(
         `${group === "add" ? "Added" : "Removed"} \`${amount}\` XP ${group === "add" ? "to" : "from"
-        } **${username}**'s bank from **${mission}**.`
+        } **${username}**'s bank${mission ? ` from **${mission}**` : ""}.`
       );
     }
 
@@ -176,12 +181,17 @@ module.exports = {
 
       let update;
       if (group === "add") {
-        update = { $inc: { experience: amount }, $push: { missions: mission } };
+        update = { $inc: { experience: amount } };
+        if (mission) {
+          update.$push = { missions: mission };
+        }
       } else if (group === "remove") {
         update = {
           $inc: { experience: -amount },
-          $pull: { missions: mission },
         };
+        if (mission) {
+          update.$pull = { missions: mission };
+        }
       }
 
       const result = await characterModel.findOneAndUpdate(
@@ -212,7 +222,7 @@ module.exports = {
 
       return interaction.editReply(
         `${group === "add" ? "Added" : "Removed"} **${amount}** XP ${group === "add" ? "to" : "from"
-        } **${character_name}** from **${mission}**. \n**${character_name}** now has a total of **${newExperience}** XP, ${group === "add" ? "gains" : "loses"
+        } **${character_name}**${mission ? ` from **${mission}**` : ""}. \n**${character_name}** now has a total of **${newExperience}** XP, ${group === "add" ? "gains" : "loses"
         } **${earnings.gpGained}** GP and is now level **${earnings.characterLevel
         }**.`
       );
@@ -296,4 +306,4 @@ module.exports = {
       );
     }
   }
-}
+};
