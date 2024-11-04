@@ -157,8 +157,7 @@ module.exports = {
 
       const newExperience = result.experience;
       return interaction.editReply(
-        `${group === "add" ? "Added" : "Removed"} \`${amount}\` XP ${
-          group === "add" ? "to" : "from"
+        `${group === "add" ? "Added" : "Removed"} \`${amount}\` XP ${group === "add" ? "to" : "from"
         } **${username}**'s bank from **${mission}**.`
       );
     }
@@ -212,16 +211,12 @@ module.exports = {
       );
 
       return interaction.editReply(
-        `${group === "add" ? "Added" : "Removed"} **${amount}** XP ${
-          group === "add" ? "to" : "from"
-        } **${character_name}** from **${mission}**. \n**${character_name}** now has a total of **${newExperience}** XP, ${
-          group === "add" ? "gains" : "loses"
-        } **${earnings.gpGained}** GP and is now level **${
-          earnings.characterLevel
+        `${group === "add" ? "Added" : "Removed"} **${amount}** XP ${group === "add" ? "to" : "from"
+        } **${character_name}** from **${mission}**. \n**${character_name}** now has a total of **${newExperience}** XP, ${group === "add" ? "gains" : "loses"
+        } **${earnings.gpGained}** GP and is now level **${earnings.characterLevel
         }**.`
       );
     }
-
     if (subcommand === "transfer") {
       const character_name = interaction.options.getString("character_name");
       const profile = await profileModel.findOne({ userId: user });
@@ -248,10 +243,15 @@ module.exports = {
       const oldExperience = character.experience;
 
       // Deduct XP from the user's bank and add it to the character's experience
-      let newProfile = await profileModel.findOneAndUpdate(
+      const updatedProfile = await profileModel.findOneAndUpdate(
         { userId: user },
-        { $inc: { experience: -amount } }
+        { $inc: { experience: -amount } },
+        { new: true } // Ensure we get the updated profile
       );
+
+      if (!updatedProfile) {
+        return interaction.editReply("Error updating your profile. Please try again.");
+      }
 
       const result = await characterModel.findOneAndUpdate(
         {
@@ -261,14 +261,22 @@ module.exports = {
         {
           $inc: { experience: amount },
         },
-        { new: true }
+        { new: true } // Ensure we get the updated character
       );
 
+      if (!result) {
+        // If updating character XP fails, revert the XP deduction
+        await profileModel.findOneAndUpdate(
+          { userId: user },
+          { $inc: { experience: amount } }
+        );
+        return interaction.editReply("Error updating character XP. Transaction reverted.");
+      }
       const newExperience = result.experience;
       const earnings = calculateGainedGPAndLevel(oldExperience, newExperience);
 
       // Update the character's level
-      await characterModel.findOneAndUpdate(
+      const updatedCharacter = await characterModel.findOneAndUpdate(
         {
           ownerId: user,
           characterName: character_name,
@@ -279,9 +287,13 @@ module.exports = {
         { new: true }
       );
 
+      if (!updatedCharacter) {
+        return interaction.editReply("Error updating character level. Please try again.");
+      }
+
       return interaction.editReply(
-        `Transferred **${amount}** XP from your bank to **${character_name}**. You have \`${newProfile.experience}\` XP left in your bank.\n**${character_name}** now has a total of **${newExperience}** XP, gains **${earnings.gpGained}** GP, and is now level **${earnings.characterLevel}**.`
+        `Transferred **${amount}** XP from your bank to **${character_name}**. You have \`${updatedProfile.experience}\` XP left in your bank.\n**${character_name}** now has a total of **${newExperience}** XP, gains **${earnings.gpGained}** GP, and is now level **${earnings.characterLevel}**.`
       );
     }
-  },
-};
+  }
+}
