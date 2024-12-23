@@ -14,6 +14,11 @@ module.exports = {
     .setDescription("Manage missions.")
     .addSubcommand((subcommand) =>
       subcommand
+        .setName("list")
+        .setDescription("List all active and completed missions.")
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
         .setName("create")
         .setDescription("Create a new mission.")
         .addStringOption((option) =>
@@ -67,12 +72,40 @@ module.exports = {
             .setDescription("The name of the mission to complete.")
             .setRequired(true)
         )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("delete")
+        .setDescription("Delete a mission.")
+        .addStringOption((option) =>
+          option
+            .setName("mission_name")
+            .setDescription("The name of the mission to delete.")
+            .setRequired(true)
+        )
     ),
 
   async execute(interaction) {
     const subcommand = interaction.options.getSubcommand();
 
-    if (subcommand === "create") {
+    if (subcommand === "list") {
+      const activeMissions = await missionModel.find({ missionStatus: "active" });
+      const completedMissions = await missionModel.find({ missionStatus: "complete" });
+
+      const activeMissionNames = activeMissions.map(m => m.missionName).join(", ") || "None";
+      const completedMissionNames = completedMissions.map(m => m.missionName).join(", ") || "None";
+
+      const embed = {
+        color: getRandomColor(),
+        title: "Mission List",
+        fields: [
+          { name: "Active Missions", value: activeMissionNames, inline: false },
+          { name: "Completed Missions", value: completedMissionNames, inline: false },
+        ],
+      };
+
+      return interaction.reply({ embeds: [embed] });
+    } else if (subcommand === "create") {
       const missionName = interaction.options.getString("mission_name");
       const gmId = interaction.user.id;
 
@@ -238,6 +271,46 @@ module.exports = {
 
       return interaction.reply({
         content: `Mission **${mission.missionName}** has been marked as complete, and it has been added to each character's missions list. Thanks for playing!`,
+      });
+    } else if (subcommand === "delete") {
+      const missionName = interaction.options.getString("mission_name");
+      const mission = await missionModel.findOne({ missionName, gmId: interaction.user.id });
+
+      if (!mission) {
+        return interaction.reply({
+          content: "No mission found for the GM.",
+          ephemeral: true,
+        });
+      }
+
+      // Remove the mission from all players
+      const players = mission.players;
+      for (const playerId of players) {
+        const character = await characterModel.findOne({
+          ownerId: playerId,
+          guildId: interaction.guild.id,
+        });
+        if (character) {
+          character.missions = character.missions.filter(m => m !== missionName);
+          await character.save();
+        }
+      }
+
+      // Remove the mission from the GM's profile
+      const gmProfile = await profileModel.findOne({
+        userId: interaction.user.id,
+        guildId: interaction.guild.id,
+      });
+      if (gmProfile) {
+        gmProfile.missions = gmProfile.missions.filter(m => m !== missionName);
+        await gmProfile.save();
+      }
+
+      // Delete the mission from the database
+      await missionModel.deleteOne({ missionName });
+
+      return interaction.reply({
+        content: `Mission **${missionName}** has been deleted successfully!`,
       });
     }
   },
