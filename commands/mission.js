@@ -92,17 +92,50 @@ module.exports = {
       const activeMissions = await missionModel.find({ missionStatus: "active" });
       const completedMissions = await missionModel.find({ missionStatus: "complete" });
 
-      const activeMissionNames = activeMissions.map(m => m.missionName).join(", ") || "None";
-      const completedMissionNames = completedMissions.map(m => m.missionName).join(", ") || "None";
-
       const embed = {
         color: getRandomColor(),
         title: "Mission List",
-        fields: [
-          { name: "Active Missions", value: activeMissionNames, inline: false },
-          { name: "Completed Missions", value: completedMissionNames, inline: false },
-        ],
+        fields: [],
       };
+
+      // Group missions by GM's display name
+      const gmMissions = {};
+
+      for (const mission of activeMissions) {
+        const member = await interaction.guild.members.fetch(mission.gmId);
+        const displayName = member.displayName || member.user.username || "Error, show Wolf this text. 29014";
+        if (!gmMissions[displayName]) {
+          gmMissions[displayName] = { active: [], completed: [] };
+        }
+        gmMissions[displayName].active.push(mission.missionName);
+      }
+
+      for (const mission of completedMissions) {
+        const member = await interaction.guild.members.fetch(mission.gmId);
+        const displayName = member.displayName || member.user.username || "Error, show Wolf this text. 92102";
+        if (!gmMissions[displayName]) {
+          gmMissions[displayName] = { active: [], completed: [] };
+        }
+        gmMissions[displayName].completed.push(mission.missionName);
+      }
+
+      // Add fields to embed
+      for (const [gm, missions] of Object.entries(gmMissions)) {
+        if (missions.active.length > 0) {
+          embed.fields.push({
+            name: `Active Missions for ${gm}`,
+            value: missions.active.join(", "),
+            inline: false,
+          });
+        }
+        if (missions.completed.length > 0) {
+          embed.fields.push({
+            name: `Completed Missions for ${gm}`,
+            value: missions.completed.join(", "),
+            inline: false,
+          });
+        }
+      }
 
       return interaction.reply({ embeds: [embed] });
     } else if (subcommand === "create") {
