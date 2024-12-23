@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require("discord.js");
 const characterModel = require("../models/characterSchema");
+const missionModel = require("../models/missionSchema");
 const { ChartJSNodeCanvas } = require('chartjs-node-canvas');
 const fs = require('fs');
 const path = require('path');
@@ -28,7 +29,13 @@ module.exports = {
                 .addChoices(
                     { name: 'level', value: 'level' },
                     { name: 'class', value: 'class' }
-                )),
+                ))
+        .addBooleanOption(option =>
+            option
+                .setName("available_only")
+                .setDescription("Include only characters not in an active mission")
+                .setRequired(false)
+        ),
     async execute(interaction) {
         try {
             // Defer reply to give us time to process the data
@@ -36,9 +43,20 @@ module.exports = {
             // Get the user's choice for grouping and analysis
             const grouping = interaction.options.getString('grouping') || 'single'; // Default to 'single'
             const analyze = interaction.options.getString('analyze') || 'level'; // Default to 'level'
+            const availableOnly = interaction.options.getBoolean("available_only") || false;
 
             // Find all character records
-            const characterData = await characterModel.find();
+            let characterData = await characterModel.find();
+            if (availableOnly) {
+                const activeMissions = await missionModel.find({
+                    players: interaction.user.id,
+                    missionStatus: "active",
+                });
+
+                const activeCharacterIds = activeMissions.flatMap(m => m.characterIds);
+                characterData = characterData.filter(character => !activeCharacterIds.includes(character.characterId));
+            }
+
             if (characterData.length === 0) {
                 console.log("No character records found in database.");
                 await interaction.editReply({

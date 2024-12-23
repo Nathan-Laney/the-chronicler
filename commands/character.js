@@ -2,6 +2,12 @@ const { SlashCommandBuilder } = require("discord.js");
 const mongoose = require("mongoose");
 const profileModel = require("../models/profileSchema");
 const characterModel = require("../models/characterSchema");
+const missionModel = require("../models/missionSchema");
+
+// Function to generate random hex color
+function getRandomColor() {
+  return Math.floor(Math.random()*16777215);
+}
 
 // Define a slash command to manage characters.
 module.exports = {
@@ -29,6 +35,16 @@ module.exports = {
 
             // Mark this option as required.
             .setRequired(true)
+        )
+        .addStringOption((option) =>
+          option
+            // Set the name of the option.
+            .setName("class")
+            // Set the description for the option.
+            .setDescription("The initial class of the character.")
+
+            // Mark this option as not required.
+            .setRequired(false)
         )
     )
 
@@ -68,6 +84,44 @@ module.exports = {
             .setName("user")
             // Set the description for the option.
             .setDescription("The user whose characters you want to list.")
+        )
+    )
+
+    // Add a subcommand to view character info
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("info")
+        .setDescription("View character information.")
+        .addStringOption((option) =>
+          option
+            .setName("character_name")
+            .setDescription("The name of the character to view.")
+            .setRequired(true)
+        )
+        .addUserOption((option) =>
+          option
+            .setName("user")
+            .setDescription("The user who owns the character (defaults to you).")
+            .setRequired(false)
+        )
+    )
+
+    // Add a subcommand to set character description
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("description")
+        .setDescription("Set the description for a character.")
+        .addStringOption((option) =>
+          option
+            .setName("character_name")
+            .setDescription("The name of the character.")
+            .setRequired(true)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("description")
+            .setDescription("The description to set.")
+            .setRequired(true)
         )
     )
 
@@ -204,11 +258,12 @@ module.exports = {
             characterName: characterName,
             level: 3,
             experience: 0,
+            class: interaction.options.getString("class") || undefined,
           });
 
           // Reply to the user with a success message
           await interaction.reply({
-            content: `Character ${character.characterName} created.`,
+            content: `Character ${character.characterName} created${character.class ? ` with class \`${character.class}\`` : ''}.`,
             ephemeral: true,
           });
         } else {
@@ -273,37 +328,202 @@ module.exports = {
        */
     } else if (subcommand === "list") {
       const targetUser = interaction.options.getUser("user") || interaction.user;
-      const username = targetUser.displayName;
-      try {
-        const characterData = await characterModel.find({
-          ownerId: targetUser.id,
-        });
+      const userId = targetUser.id;
 
-        if (characterData.length === 0) {
-          await interaction.reply({
-            content: `${targetUser.id === interaction.user.id
-              ? "You don't"
-              : `${username} doesn't`
-              } have any characters.`,
-          });
-          return;
-        }
+      // Get the guild member to access their nickname
+      const member = await interaction.guild.members.fetch(userId);
+      const displayName = member.displayName || targetUser.username;
 
-        let characterList = "";
-        characterData.forEach((character) => {
-          characterList += `\`${character.characterName}\`\nLevel: ${character.level}\nXP: ${character.experience}\nClass: ${character.class || "Not Set"}\nMissions: ${character.missions.join(", ")}\n\n`;
-        });
+      // Get the user's profile to check for GM'd missions
+      const profile = await profileModel.findOne({
+        userId: userId,
+        guildId: interaction.guild.id,
+      });
 
-        await interaction.reply({
-          content: `> **${username}'s Characters**\n${characterList}`,
-        });
-      } catch (error) {
-        console.error(`Error fetching character data: ${error}`);
-        await interaction.reply({
-          content: "An error occurred while fetching the character data.",
+      const characters = await characterModel.find({
+        ownerId: userId,
+        guildId: interaction.guild.id,
+      });
+
+      if (characters.length === 0 && (!profile || !profile.missions.length)) {
+        return interaction.reply({
+          content: `No characters or missions found for user <@${userId}>!`,
           ephemeral: true,
         });
       }
+
+      const embed = {
+        color: getRandomColor(),
+        title: `${displayName}'s Characters`,
+        fields: [],
+      };
+
+      // Add GM'd missions field if they exist
+      if (profile && profile.missions.length > 0) {
+        // Get all missions for this GM
+        const allMissions = await missionModel.find({
+          gmId: userId,
+        });
+
+        // Separate active and completed missions
+        const activeMissions = allMissions
+          .filter(m => m.missionStatus === "active")
+          .map(m => m.missionName);
+        
+        const completedMissions = allMissions
+          .filter(m => m.missionStatus === "complete")
+          .map(m => m.missionName);
+
+        if (activeMissions.length > 0) {
+          embed.fields.push({
+            name: "Active GM Missions",
+            value: activeMissions.join(", "),
+            inline: false,
+          });
+        }
+
+        if (completedMissions.length > 0) {
+          embed.fields.push({
+            name: "Completed GM Missions",
+            value: completedMissions.join(", "),
+            inline: false,
+          });
+        }
+      }
+
+      // Add character fields
+      for (const character of characters) {
+        // Check if character is in an active mission
+        const activeMission = await missionModel.findOne({
+          characterIds: { $in: [character.characterId] },
+          missionStatus: "active",
+        });
+
+        const activeMissionText = activeMission
+          ? `\n**Active Mission:** ${activeMission.missionName}`
+          : "";
+
+        embed.fields.push({
+          name: `\`${character.characterName}\``,
+          value:
+            `**Level:** ${character.level}\n` +
+            `**Class:** ${character.class || "Not Set"}\n` +
+            `**XP:** ${character.experience}\n` +
+            `**Completed Missions:** ${character.missions.length > 0 ? character.missions.join(", ") : "None"}` +
+            activeMissionText,
+          inline: false,
+        });
+      }
+
+      return interaction.reply({
+        embeds: [embed],
+
+      });
+      /**
+       * Handle viewing character info.
+       */
+    } else if (subcommand === "info") {
+        const characterName = interaction.options.getString("character_name");
+        const targetUser = interaction.options.getUser("user") || interaction.user;
+
+        // Get the character data
+        const character = await characterModel.findOne({
+          characterName: characterName,
+          ownerId: targetUser.id,
+          guildId: interaction.guild.id,
+        });
+
+        if (!character) {
+          return interaction.reply({
+            content: targetUser.id === interaction.user.id 
+              ? `You don't have a character named "${characterName}"!`
+              : `${targetUser.username} doesn't have a character named "${characterName}"!`,
+            ephemeral: true,
+          });
+        }
+
+        // Check for active mission
+        const activeMission = await missionModel.findOne({
+          characterIds: character.characterId,
+          missionStatus: "active",
+        });
+
+        // Format the missions list
+        const missionsList = character.missions.length > 0 
+          ? character.missions.map(mission => `• ${mission}`).join('\n')
+          : "No missions completed yet";
+
+        // Create an embed for the character info
+        const embed = {
+          color: getRandomColor(),
+          title: `Character Info - **${character.characterName}**`,
+          fields: [
+            {
+              name: "Level",
+              value: character.level.toString(),
+              inline: true,
+            },
+            {
+              name: "Experience",
+              value: character.experience.toString(),
+              inline: true,
+            },
+            {
+              name: "Class",
+              value: character.class || "Not Set",
+              inline: true
+            },
+            {
+              name: "Active Mission",
+              value: activeMission ? activeMission.missionName : "None",
+              inline: false,
+            },
+            {
+              name: "Completed Missions",
+              value: character.missions.length > 0 ? character.missions.join(", ") : "None",
+              inline: false,
+            },
+          ],
+        };
+
+        // Add description if it exists
+        if (character.description) {
+          embed.fields.push({
+            name: "Description",
+            value: character.description,
+            inline: false,
+          });
+        }
+
+        return interaction.reply({
+          embeds: [embed],
+        });
+      /**
+       * Handle setting character description.
+       */
+    } else if (subcommand === "description") {
+      const characterName = interaction.options.getString("character_name");
+      const description = interaction.options.getString("description");
+
+      const character = await characterModel.findOne({
+        characterName,
+        ownerId: interaction.user.id,
+        guildId: interaction.guild.id,
+      });
+
+      if (!character) {
+        return interaction.reply({
+          content: `Character **${characterName}** not found!`,
+          ephemeral: true,
+        });
+      }
+
+      character.description = description;
+      await character.save();
+
+      return interaction.reply({
+        content: `Description for **${characterName}** has been set!`,
+      });
       /**
        * Handle adding or removing missions.
        */
@@ -334,7 +554,6 @@ module.exports = {
             );
             await interaction.reply({
               content: `Mission **${mission}** added to character **${characterName}**.`,
-              ephemeral: true,
             });
           } else if (subcommand === "remove") {
             await characterModel.updateOne(
@@ -343,7 +562,6 @@ module.exports = {
             );
             await interaction.reply({
               content: `Mission **${mission}** removed from character **${characterName}**.`,
-              ephemeral: true,
             });
           }
         } catch (error) {
@@ -384,8 +602,7 @@ module.exports = {
           );
 
           await interaction.reply({
-            content: `Character **${characterName}**'s class set to \`${classString}\`.`,
-
+            content: `Character **${characterName}**'s class set to \`${classString}\`.`
           });
         } catch (error) {
           console.error(`Error setting character's class: ${error}`);
@@ -398,4 +615,3 @@ module.exports = {
     }
   },
 };
-
