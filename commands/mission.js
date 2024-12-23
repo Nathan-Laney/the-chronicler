@@ -61,6 +61,12 @@ module.exports = {
             .setDescription("The name of the mission to report on.")
             .setRequired(false)
         )
+        .addUserOption((option) =>
+          option
+            .setName("user")
+            .setDescription("The GM whose mission to view (defaults to you).")
+            .setRequired(false)
+        )
     )
     .addSubcommand((subcommand) =>
       subcommand
@@ -221,17 +227,20 @@ module.exports = {
       });
     } else if (subcommand === "info") {
       const missionName = interaction.options.getString("mission_name");
+      const targetUser = interaction.options.getUser("user") || interaction.user;
       let mission;
 
       if (missionName) {
-        mission = await missionModel.findOne({ missionName, gmId: interaction.user.id });
+        mission = await missionModel.findOne({ missionName, gmId: targetUser.id });
       } else {
-        mission = await missionModel.findOne({ gmId: interaction.user.id });
+        mission = await missionModel.findOne({ gmId: targetUser.id });
       }
 
       if (!mission) {
         return interaction.reply({
-          content: "No mission found for this GM.",
+          content: targetUser.id === interaction.user.id 
+            ? "No mission found for you as GM."
+            : `No mission found for ${targetUser.username} as GM.`,
         });
       }
 
