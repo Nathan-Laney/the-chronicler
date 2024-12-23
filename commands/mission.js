@@ -265,11 +265,21 @@ module.exports = {
       });
     } else if (subcommand === "complete") {
       const missionName = interaction.options.getString("mission_name");
-      const mission = await missionModel.findOne({ missionName, gmId: interaction.user.id });
+      const mission = await missionModel.findOne({ missionName });
+
+      // Check if the user is the GM or has admin permissions
+      const member = await interaction.guild.members.fetch(interaction.user.id);
+      if (mission.gmId !== interaction.user.id && !member.permissions.has("ADMINISTRATOR")) {
+        return interaction.reply({
+          content: "You do not have permission to complete this mission.",
+          ephemeral: true,
+        });
+      }
 
       if (!mission) {
         return interaction.reply({
-          content: "No mission found for the GM.",
+          content: "No mission found for the specified name.",
+          ephemeral: true,
         });
       }
 
@@ -299,11 +309,21 @@ module.exports = {
       });
     } else if (subcommand === "delete") {
       const missionName = interaction.options.getString("mission_name");
-      const mission = await missionModel.findOne({ missionName, gmId: interaction.user.id });
+      const mission = await missionModel.findOne({ missionName });
+
+      // Check if the user is the GM or has admin permissions
+      const member = await interaction.guild.members.fetch(interaction.user.id);
+      if (mission.gmId !== interaction.user.id && !member.permissions.has("ADMINISTRATOR")) {
+        return interaction.reply({
+          content: "You do not have permission to delete this mission.",
+          ephemeral: true,
+        });
+      }
 
       if (!mission) {
         return interaction.reply({
-          content: "No mission found for this GM.",
+          content: "No mission found for the specified name.",
+          ephemeral: true,
         });
       }
 
@@ -322,7 +342,7 @@ module.exports = {
 
       // Remove the mission from the GM's profile
       const gmProfile = await profileModel.findOne({
-        userId: interaction.user.id,
+        userId: mission.gmId,
         guildId: interaction.guild.id,
       });
       if (gmProfile) {
