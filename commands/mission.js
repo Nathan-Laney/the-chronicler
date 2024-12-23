@@ -133,7 +133,6 @@ module.exports = {
 
       return interaction.reply({
         content: `Mission **${missionName}** created successfully!`,
-        ephemeral: true,
       });
     } else if (subcommand === "addplayer") {
       const userId = interaction.options.getUser("user").id;
@@ -150,8 +149,7 @@ module.exports = {
 
       if (!mission) {
         return interaction.reply({
-          content: "No mission found for the GM.",
-          ephemeral: true,
+          content: "No mission found for this GM.",
         });
       }
 
@@ -165,7 +163,6 @@ module.exports = {
       if (!character) {
         return interaction.reply({
           content: `Character **${characterName}** not found for user <@${userId}>!`,
-          ephemeral: true,
         });
       }
 
@@ -178,7 +175,6 @@ module.exports = {
       if (activeMission) {
         return interaction.reply({
           content: `Character **${characterName}** is already in an active mission: **${activeMission.missionName}**!`,
-          ephemeral: true,
         });
       }
 
@@ -189,7 +185,6 @@ module.exports = {
 
       return interaction.reply({
         content: `Player <@${userId}> with character **${characterName}** added to mission **${mission.missionName}**!`,
-        ephemeral: true,
       });
     } else if (subcommand === "info") {
       const missionName = interaction.options.getString("mission_name");
@@ -203,8 +198,7 @@ module.exports = {
 
       if (!mission) {
         return interaction.reply({
-          content: "No mission found for the GM.",
-          ephemeral: true,
+          content: "No mission found for this GM.",
         });
       }
 
@@ -235,7 +229,6 @@ module.exports = {
 
       return interaction.reply({
         embeds: [embed],
-        ephemeral: true,
       });
     } else if (subcommand === "complete") {
       const missionName = interaction.options.getString("mission_name");
@@ -244,7 +237,6 @@ module.exports = {
       if (!mission) {
         return interaction.reply({
           content: "No mission found for the GM.",
-          ephemeral: true,
         });
       }
 
@@ -278,8 +270,7 @@ module.exports = {
 
       if (!mission) {
         return interaction.reply({
-          content: "No mission found for the GM.",
-          ephemeral: true,
+          content: "No mission found for this GM.",
         });
       }
 

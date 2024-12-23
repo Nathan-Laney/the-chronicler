@@ -398,7 +398,7 @@ module.exports = {
 
       return interaction.reply({
         embeds: [embed],
-        ephemeral: true,
+
       });
       /**
        * Handle viewing character info.
@@ -502,7 +502,6 @@ module.exports = {
             );
             await interaction.reply({
               content: `Mission **${mission}** added to character **${characterName}**.`,
-              ephemeral: true,
             });
           } else if (subcommand === "remove") {
             await characterModel.updateOne(
@@ -511,7 +510,6 @@ module.exports = {
             );
             await interaction.reply({
               content: `Mission **${mission}** removed from character **${characterName}**.`,
-              ephemeral: true,
             });
           }
         } catch (error) {
