@@ -30,6 +30,16 @@ module.exports = {
             // Mark this option as required.
             .setRequired(true)
         )
+        .addStringOption((option) =>
+          option
+            // Set the name of the option.
+            .setName("class")
+            // Set the description for the option.
+            .setDescription("The initial class of the character.")
+
+            // Mark this option as not required.
+            .setRequired(false)
+        )
     )
 
     // Add a subcommand to delete an existing character.
@@ -204,11 +214,12 @@ module.exports = {
             characterName: characterName,
             level: 3,
             experience: 0,
+            class: interaction.options.getString("class") || undefined,
           });
 
           // Reply to the user with a success message
           await interaction.reply({
-            content: `Character ${character.characterName} created.`,
+            content: `Character ${character.characterName} created${character.class ? ` with class \`${character.class}\`` : ''}.`,
             ephemeral: true,
           });
         } else {
