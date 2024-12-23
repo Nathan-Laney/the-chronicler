@@ -106,6 +106,25 @@ module.exports = {
         )
     )
 
+    // Add a subcommand to set character description
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("description")
+        .setDescription("Set the description for a character.")
+        .addStringOption((option) =>
+          option
+            .setName("character_name")
+            .setDescription("The name of the character.")
+            .setRequired(true)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("description")
+            .setDescription("The description to set.")
+            .setRequired(true)
+        )
+    )
+
     // Add a subcommand group for managing character classes.
     .addSubcommandGroup((group) =>
       group
@@ -437,17 +456,17 @@ module.exports = {
         // Create an embed for the character info
         const embed = {
           color: getRandomColor(),
-          title: `Character Info for ${character.characterName}`,
+          title: `Character Info - **${character.characterName}**`,
           fields: [
-            {
-              name: "Owner",
-              value: `<@${character.ownerId}>`,
-              inline: true
-            },
             {
               name: "Level",
               value: character.level.toString(),
-              inline: true
+              inline: true,
+            },
+            {
+              name: "Experience",
+              value: character.experience.toString(),
+              inline: true,
             },
             {
               name: "Class",
@@ -455,23 +474,56 @@ module.exports = {
               inline: true
             },
             {
-              name: "Past Missions",
-              value: missionsList,
+              name: "Active Mission",
+              value: activeMission ? activeMission.missionName : "None",
+              inline: false,
+            },
+            {
+              name: "Completed Missions",
+              value: character.missions.length > 0 ? character.missions.join(", ") : "None",
+              inline: false,
             },
           ],
         };
 
-        // Add active mission if it exists
-        if (activeMission) {
+        // Add description if it exists
+        if (character.description) {
           embed.fields.push({
-            name: "Active Mission:",
-            value: activeMission.missionName,
+            name: "Description",
+            value: character.description,
+            inline: false,
           });
         }
 
         return interaction.reply({
           embeds: [embed],
         });
+      /**
+       * Handle setting character description.
+       */
+    } else if (subcommand === "description") {
+      const characterName = interaction.options.getString("character_name");
+      const description = interaction.options.getString("description");
+
+      const character = await characterModel.findOne({
+        characterName,
+        ownerId: interaction.user.id,
+        guildId: interaction.guild.id,
+      });
+
+      if (!character) {
+        return interaction.reply({
+          content: `Character **${characterName}** not found!`,
+          ephemeral: true,
+        });
+      }
+
+      character.description = description;
+      await character.save();
+
+      return interaction.reply({
+        content: `Description for **${characterName}** has been set!`,
+      });
       /**
        * Handle adding or removing missions.
        */

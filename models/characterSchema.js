@@ -34,6 +34,10 @@ const profileSchema = new mongoose.Schema({
     type: String,
     required: false,
   }, 
+  description: {
+    type: String,
+    required: false,
+  },
 });
 
 const model = mongoose.model("characters", profileSchema);
