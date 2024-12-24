@@ -177,18 +177,23 @@ module.exports = {
       const userId = interaction.options.getUser("user").id;
       const characterName = interaction.options.getString("character");
       const missionName = interaction.options.getString("mission_name");
-
       let mission;
 
       if (missionName) {
         mission = await missionModel.findOne({ missionName, gmId: interaction.user.id });
       } else {
-        mission = await missionModel.findOne({ gmId: interaction.user.id });
+        mission = await missionModel.findOne({ 
+          gmId: interaction.user.id,
+          missionStatus: "active"
+        });
       }
 
       if (!mission) {
         return interaction.reply({
-          content: "No mission found for this GM.",
+          content: missionName 
+            ? `Could not find mission "${missionName}".`
+            : "You have no active missions. Please specify a mission name or create a new mission.",
+          ephemeral: true,
         });
       }
 
