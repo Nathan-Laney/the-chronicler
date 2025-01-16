@@ -35,6 +35,7 @@ module.exports = {
 
             // Mark this option as required.
             .setRequired(true)
+            .setAutocomplete(true)
         )
         .addStringOption((option) =>
           option
@@ -66,6 +67,7 @@ module.exports = {
 
             // Mark this option as required.
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
 
@@ -97,6 +99,7 @@ module.exports = {
             .setName("character_name")
             .setDescription("The name of the character to view.")
             .setRequired(true)
+            .setAutocomplete(true)
         )
         .addUserOption((option) =>
           option
@@ -116,6 +119,7 @@ module.exports = {
             .setName("character_name")
             .setDescription("The name of the character.")
             .setRequired(true)
+            .setAutocomplete(true)
         )
         .addStringOption((option) =>
           option
@@ -151,6 +155,7 @@ module.exports = {
 
                 // Mark this option as required.
                 .setRequired(true)
+                .setAutocomplete(true)
             )
 
             .addStringOption((option) =>
@@ -192,6 +197,7 @@ module.exports = {
 
                 // Mark this option as required.
                 .setRequired(true)
+                .setAutocomplete(true)
             )
 
             .addStringOption((option) =>
@@ -214,6 +220,7 @@ module.exports = {
                 .setName("character_name")
                 .setDescription("The name of the character.")
                 .setRequired(true)
+                .setAutocomplete(true)
             )
             .addStringOption((option) =>
               option

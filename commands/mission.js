@@ -43,6 +43,7 @@ module.exports = {
             .setName("character")
             .setDescription("The character name of the user.")
             .setRequired(true)
+            .setAutocomplete(true)
         )
         .addStringOption((option) =>
           option
