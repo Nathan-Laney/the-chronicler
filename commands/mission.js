@@ -178,6 +178,12 @@ module.exports = {
     } else if (subcommand === "addplayer") {
       const userId = interaction.options.getUser("user").id;
       
+      console.log('AddPlayer Debug - Query Parameters:', {
+        gmId: interaction.user.id,
+        guildId: interaction.guild.id,
+        missionStatus: "active"
+      });
+
       // Get all characters for the user
       const characters = await characterModel.find({
           ownerId: userId,
@@ -190,6 +196,8 @@ module.exports = {
           guildId: interaction.guild.id,
           missionStatus: "active"
       });
+
+      console.log('AddPlayer Debug - Found Missions:', missions);
 
       if (!characters.length) {
           return interaction.reply({
