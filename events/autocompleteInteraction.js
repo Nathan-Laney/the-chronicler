@@ -63,21 +63,20 @@ module.exports = {
         
         // Handle mission name autocompletion
         else if (focusedOption.name === 'mission' || focusedOption.name === 'mission_name') {
-            // For addplayer and removeplayer, only show active missions
-            const activeOnly = interaction.commandName === 'mission' && 
-                (interaction.options.getSubcommand() === 'addplayer' || 
-                 interaction.options.getSubcommand() === 'removeplayer');
+            // For removeplayer, only show missions user GMs
+            const isRemovePlayer = interaction.commandName === 'mission' && 
+                interaction.options.getSubcommand() === 'removeplayer';
 
             // Get missions based on command context
             const missions = await missionModel.find({ 
                 guildId: interaction.guildId,
-                ...(activeOnly ? { missionStatus: 'active' } : {})
+                ...(isRemovePlayer ? { gmId: interaction.user.id } : {})
             });
 
             let choices = [];
             
             // Add current input as first choice if it's not empty
-            if (focusedOption.value.trim()) {
+            if (focusedOption.value.trim() && !isRemovePlayer) {
                 choices.push({
                     name: `Custom: ${focusedOption.value}`,
                     value: focusedOption.value
@@ -91,8 +90,13 @@ module.exports = {
                     let status = mission.missionStatus === 'active' ? '🟢' : '⭕';
                     let details = '';
                     
+                    // For removeplayer, show player count
+                    if (isRemovePlayer) {
+                        const playerCount = mission.characterNames?.length || 0;
+                        details = ` | ${playerCount} player${playerCount !== 1 ? 's' : ''}`;
+                    }
                     // For info command, show player count
-                    if (interaction.commandName === 'mission' && interaction.options.getSubcommand() === 'info') {
+                    else if (interaction.commandName === 'mission' && interaction.options.getSubcommand() === 'info') {
                         const playerCount = mission.characterNames?.length || 0;
                         details = ` | ${playerCount} player${playerCount !== 1 ? 's' : ''}`;
                     }

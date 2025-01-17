@@ -2,6 +2,7 @@ const { SlashCommandBuilder } = require("discord.js");
 const missionModel = require("../models/missionSchema");
 const characterModel = require("../models/characterSchema");
 const profileModel = require("../models/profileSchema");
+const { StringSelectMenuBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require("discord.js");
 
 // Function to generate random hex color
 function getRandomColor() {
@@ -50,17 +51,11 @@ module.exports = {
       subcommand
         .setName("removeplayer")
         .setDescription("Remove a player from the mission.")
-        .addUserOption((option) =>
-          option
-            .setName("user")
-            .setDescription("The user to remove from the mission.")
-            .setRequired(true)
-        )
         .addStringOption((option) =>
           option
             .setName("mission_name")
-            .setDescription("The name of the mission to remove the player from.")
-            .setRequired(false)
+            .setDescription("The name of the mission to remove a player from.")
+            .setRequired(true)
             .setAutocomplete(true)
         )
     )
@@ -243,42 +238,52 @@ module.exports = {
         content: `Player <@${userId}> with character **${character.characterName}** added to mission **${mission.missionName}**!`,
       });
     } else if (subcommand === "removeplayer") {
-      const userId = interaction.options.getUser("user").id;
       const missionName = interaction.options.getString("mission_name");
-      let mission;
-
-      if (missionName) {
-        mission = await missionModel.findOne({ missionName, gmId: interaction.user.id });
-      } else {
-        mission = await missionModel.findOne({ 
-          gmId: interaction.user.id,
-          missionStatus: "active"
-        });
-      }
+      const mission = await missionModel.findOne({ 
+        missionName,
+        gmId: interaction.user.id,
+        guildId: interaction.guild.id
+      });
 
       if (!mission) {
         return interaction.reply({
-          content: missionName 
-            ? `Could not find mission "${missionName}".`
-            : "You have no active missions. Please specify a mission name or create a new mission.",
+          content: `Could not find mission "${missionName}".`,
           ephemeral: true,
         });
       }
 
-      const index = mission.players.indexOf(userId);
-      if (index === -1) {
+      if (!mission.players?.length) {
         return interaction.reply({
-          content: `Player <@${userId}> is not in mission **${mission.missionName}**.`,
+          content: `No players in mission "${missionName}".`,
+          ephemeral: true,
         });
       }
 
-      mission.players.splice(index, 1);
-      mission.characterNames.splice(index, 1);
-      mission.characterIds.splice(index, 1);
-      await mission.save();
+      // Create dropdown with current players
+      const selectMenu = new StringSelectMenuBuilder()
+        .setCustomId(`missionRemovePlayer_${missionName}`)
+        .setPlaceholder('Select a player to remove')
+        .addOptions(
+          mission.players.map((playerId, index) => ({
+            label: mission.characterNames[index],
+            description: `Player: <@${playerId}>`,
+            value: `${index}`
+          }))
+        );
+
+      // Create confirm button
+      const confirmButton = new ButtonBuilder()
+        .setCustomId(`confirmRemovePlayer_${missionName}`)
+        .setLabel('Remove Selected Player')
+        .setStyle(ButtonStyle.Danger);
+
+      const row1 = new ActionRowBuilder().addComponents(selectMenu);
+      const row2 = new ActionRowBuilder().addComponents(confirmButton);
 
       return interaction.reply({
-        content: `Player <@${userId}> removed from mission **${mission.missionName}**.`,
+        content: `Select a player to remove from mission "${missionName}":`,
+        components: [row1, row2],
+        ephemeral: true
       });
     } else if (subcommand === "info") {
       const missionName = interaction.options.getString("mission_name");

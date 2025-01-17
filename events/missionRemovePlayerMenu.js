@@ -35,111 +35,72 @@ module.exports = {
                     });
                 }
 
-                // Find all characters for this user in the mission
-                const userCharactersInMission = [];
-                for (let i = 0; i < mission.characterIds.length; i++) {
-                    const charId = mission.characterIds[i];
-                    const character = await characterModel.findOne({ 
-                        characterId: charId,
-                        ownerId: userId
-                    });
-                    if (character) {
-                        userCharactersInMission.push({
-                            id: charId,
-                            name: mission.characterNames[i],
-                            index: i
-                        });
-                    }
-                }
-
-                if (!userCharactersInMission.length) {
-                    return interaction.reply({
-                        content: `Player <@${userId}> has no characters in mission **${mission.missionName}**!`,
-                        ephemeral: true
-                    });
-                }
-
-                // Create the select menu
-                const select = new StringSelectMenuBuilder()
-                    .setCustomId(`mission_removeplayer_select_${userId}_${mission.missionName}`)
-                    .setPlaceholder('Select a character to remove')
+                // Create dropdown with current players
+                const selectMenu = new StringSelectMenuBuilder()
+                    .setCustomId(`missionRemovePlayer_${mission.missionName}`)
+                    .setPlaceholder('Select a player to remove')
                     .addOptions(
-                        userCharactersInMission.map(char => 
-                            new StringSelectMenuOptionBuilder()
-                                .setLabel(char.name)
-                                .setDescription(`Remove from ${mission.missionName}`)
-                                .setValue(`${char.id}_${char.index}`)
-                        )
+                        mission.players.map((playerId, index) => ({
+                            label: mission.characterNames[index],
+                            description: `Player: <@${playerId}>`,
+                            value: `${index}`
+                        }))
                     );
 
-                // Create the submit button
-                const button = new ButtonBuilder()
-                    .setCustomId(`mission_removeplayer_submit_${userId}_${mission.missionName}`)
-                    .setLabel('Remove from Mission')
-                    .setStyle(ButtonStyle.Danger)
-                    .setDisabled(true); // Initially disabled until a character is selected
+                // Create confirm button
+                const confirmButton = new ButtonBuilder()
+                    .setCustomId(`confirmRemovePlayer_${mission.missionName}`)
+                    .setLabel('Remove Selected Player')
+                    .setStyle(ButtonStyle.Danger);
 
-                // Create and send the message with components
-                const row1 = new ActionRowBuilder().addComponents(select);
-                const row2 = new ActionRowBuilder().addComponents(button);
+                const row1 = new ActionRowBuilder().addComponents(selectMenu);
+                const row2 = new ActionRowBuilder().addComponents(confirmButton);
 
                 await interaction.reply({
-                    content: `Select which character to remove from mission **${mission.missionName}**:`,
+                    content: `Select a player to remove from mission "${mission.missionName}":`,
                     components: [row1, row2],
                     ephemeral: true
                 });
             }
             
             // Handle the select menu interaction
-            else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('mission_removeplayer_select_')) {
+            else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('missionRemovePlayer_')) {
                 if (!interaction.deferred && !interaction.replied) {
                     await interaction.deferUpdate();
                 }
                 
-                const [_, __, ___, userId, ...missionNameParts] = interaction.customId.split('_');
-                const missionName = missionNameParts.join('_');
-                const [selectedCharId, charIndex] = interaction.values[0].split('_');
+                const missionName = interaction.customId.split('_')[1];
+                const selectedIndex = parseInt(interaction.values[0]);
                 
                 // Get the character details for the message
-                const character = await characterModel.findOne({
-                    characterId: selectedCharId,
-                    ownerId: userId,
+                const mission = await missionModel.findOne({
+                    missionName,
                     guildId: interaction.guild.id,
                 });
 
                 // Update the button's custom ID to include the selected character and index
                 const button = ButtonBuilder
                     .from(interaction.message.components[1].components[0])
-                    .setCustomId(`mission_removeplayer_submit_${userId}_${missionName}_${selectedCharId}_${charIndex}`)
+                    .setCustomId(`confirmRemovePlayer_${missionName}_${selectedIndex}`)
                     .setDisabled(false); // Enable the button now that a character is selected
                 
                 const row1 = ActionRowBuilder.from(interaction.message.components[0]);
                 const row2 = new ActionRowBuilder().addComponents(button);
 
                 await interaction.editReply({
-                    content: `Remove **${character.characterName}** from mission **${missionName}**?\nClick "Remove from Mission" to confirm.`,
+                    content: `Remove player <@${mission.players[selectedIndex]}> from mission **${missionName}**?\nClick "Remove Selected Player" to confirm.`,
                     components: [row1, row2]
                 });
             }
             
             // Handle the submit button interaction
-            else if (interaction.isButton() && interaction.customId.startsWith('mission_removeplayer_submit_')) {
+            else if (interaction.isButton() && interaction.customId.startsWith('confirmRemovePlayer_')) {
                 if (!interaction.deferred && !interaction.replied) {
                     await interaction.deferUpdate();
                 }
                 
-                const [_, __, ___, userId, ...parts] = interaction.customId.split('_');
-                const charIndex = parts.pop();
-                const selectedCharId = parts.pop();
-                const missionName = parts.join('_');
+                const [_, __, missionName, selectedIndex] = interaction.customId.split('_');
                 
-                if (!selectedCharId || charIndex === undefined) {
-                    return interaction.editReply({
-                        content: 'Please select a character first!',
-                        components: []
-                    });
-                }
-
                 // Find the mission
                 const mission = await missionModel.findOne({
                     missionName: missionName,
@@ -153,29 +114,14 @@ module.exports = {
                     });
                 }
 
-                // Get the character
-                const character = await characterModel.findOne({
-                    characterId: selectedCharId,
-                    ownerId: userId,
-                    guildId: interaction.guild.id,
-                });
-
-                if (!character) {
-                    return interaction.editReply({
-                        content: 'Character not found!',
-                        components: []
-                    });
-                }
-
-                // Remove character from mission
-                mission.characterNames.splice(parseInt(charIndex), 1);
-                mission.characterIds.splice(parseInt(charIndex), 1);
-                mission.players.splice(parseInt(charIndex), 1);
+                // Remove player from mission
+                mission.players.splice(parseInt(selectedIndex), 1);
+                mission.characterNames.splice(parseInt(selectedIndex), 1);
                 await mission.save();
 
                 // Remove the components and show success message
                 await interaction.editReply({
-                    content: `Player <@${userId}>'s character **${character.characterName}** has been removed from mission **${mission.missionName}**!`,
+                    content: `Player <@${mission.players[selectedIndex]}> has been removed from mission **${missionName}**!`,
                     components: []
                 });
             }
