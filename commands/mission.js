@@ -180,12 +180,6 @@ module.exports = {
     } else if (subcommand === "addplayer") {
       const userId = interaction.options.getUser("user").id;
       
-      console.log('AddPlayer Debug - Query Parameters:', {
-        gmId: interaction.user.id,
-        guildId: interaction.guild.id,
-        missionStatus: "active"
-      });
-
       // Get all characters for the user
       const characters = await characterModel.find({
           ownerId: userId,
@@ -198,8 +192,6 @@ module.exports = {
           guildId: interaction.guild.id,
           missionStatus: "active"
       });
-
-      console.log('AddPlayer Debug - Found Missions:', missions);
 
       if (!characters.length) {
           return interaction.reply({
@@ -217,7 +209,7 @@ module.exports = {
 
       // Create the character select menu
       const characterSelect = new StringSelectMenuBuilder()
-          .setCustomId(`missionAddPlayer_character_${userId}`)
+          .setCustomId(`character_select`)
           .setPlaceholder('Select a character')
           .addOptions(
               characters.map(char => 
@@ -230,7 +222,7 @@ module.exports = {
 
       // Create the mission select menu
       const missionSelect = new StringSelectMenuBuilder()
-          .setCustomId(`missionAddPlayer_mission_${userId}`)
+          .setCustomId(`mission_select`)
           .setPlaceholder('Select a mission')
           .addOptions(
               missions.map(mission => 
@@ -243,17 +235,22 @@ module.exports = {
 
       // Create the submit button (initially disabled)
       const button = new ButtonBuilder()
-          .setCustomId(`confirmAddPlayer_${userId}`)
+          .setCustomId(`add_to_mission`)
           .setLabel('Add to Mission')
-          .setStyle(ButtonStyle.Primary)
-          .setDisabled(true);
+          .setStyle(ButtonStyle.Primary);
 
       const row1 = new ActionRowBuilder().addComponents(characterSelect);
       const row2 = new ActionRowBuilder().addComponents(missionSelect);
       const row3 = new ActionRowBuilder().addComponents(button);
 
+      const embed = {
+          color: getRandomColor(),
+          title: 'Add Player to Mission',
+          description: `Select a character and mission to add the player to.`,
+      };
+
       return interaction.reply({
-          content: `Select a character for <@${userId}> and a mission to add them to:`,
+          embeds: [embed],
           components: [row1, row2, row3],
           ephemeral: true
       });
