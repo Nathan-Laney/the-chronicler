@@ -97,8 +97,8 @@ module.exports = {
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === "list") {
-      const activeMissions = await missionModel.find({ missionStatus: "active" });
-      const completedMissions = await missionModel.find({ missionStatus: "complete" });
+      const activeMissions = await missionModel.find({ missionStatus: "active", guildId: interaction.guild.id });
+      const completedMissions = await missionModel.find({ missionStatus: "complete", guildId: interaction.guild.id });
 
       const embed = {
         color: getRandomColor(),
@@ -149,9 +149,11 @@ module.exports = {
     } else if (subcommand === "create") {
       const missionName = interaction.options.getString("mission_name");
       const gmId = interaction.user.id;
+      const guildId = interaction.guild.id;
 
       const newMission = new missionModel({
         missionName,
+        guildId,
         players: [],
         characterNames: [],
         characterIds: [],
@@ -356,7 +358,7 @@ module.exports = {
       return interaction.reply({ embeds: [embed] });
     } else if (subcommand === "complete") {
       const missionName = interaction.options.getString("mission_name");
-      const mission = await missionModel.findOne({ missionName });
+      const mission = await missionModel.findOne({ missionName, guildId: interaction.guild.id });
 
       // Check if the user is the GM or has admin permissions
       const member = await interaction.guild.members.fetch(interaction.user.id);
@@ -400,7 +402,7 @@ module.exports = {
       });
     } else if (subcommand === "delete") {
       const missionName = interaction.options.getString("mission_name");
-      const mission = await missionModel.findOne({ missionName });
+      const mission = await missionModel.findOne({ missionName, guildId: interaction.guild.id });
 
       // Check if the user is the GM or has admin permissions
       const member = await interaction.guild.members.fetch(interaction.user.id);
@@ -442,7 +444,7 @@ module.exports = {
       }
 
       // Delete the mission from the database
-      await missionModel.deleteOne({ missionName });
+      await missionModel.deleteOne({ missionName, guildId: interaction.guild.id });
 
       return interaction.reply({
         content: `Mission **${missionName}** has been deleted successfully!`,

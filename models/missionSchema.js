@@ -11,6 +11,10 @@ const missionSchema = new mongoose.Schema({
     type: String,
     required: true,
   },
+  guildId: {
+    type: String,
+    required: true,
+  },
   players: {
     type: [String], // Array of user IDs
     default: [],
