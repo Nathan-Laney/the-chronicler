@@ -222,8 +222,70 @@ module.exports = {
           ephemeral: true
       });
     } else if (subcommand === "removeplayer") {
-      // Let the event handler handle this
-      return;
+      const missionName = interaction.options.getString("mission_name");
+      
+      // Find the mission
+      const mission = await missionModel.findOne({
+          missionName,
+          guildId: interaction.guild.id,
+          missionStatus: "active"
+      });
+
+      if (!mission) {
+          return interaction.reply({
+              content: `Could not find active mission "${missionName}".`,
+              ephemeral: true
+          });
+      }
+
+      // Check if user is GM or has admin permissions
+      const member = await interaction.guild.members.fetch(interaction.user.id);
+      if (mission.gmId !== interaction.user.id && !member.permissions.has("Administrator")) {
+          return interaction.reply({
+              content: "You must be the GM of this mission or have administrator permissions to remove players.",
+              ephemeral: true
+          });
+      }
+
+      if (!mission.players.length) {
+          return interaction.reply({
+              content: "This mission has no players to remove.",
+              ephemeral: true
+          });
+      }
+
+      // Create dropdown with current players
+      const selectMenu = new StringSelectMenuBuilder()
+          .setCustomId(`missionRemovePlayer_${missionName}`)
+          .setPlaceholder('Select a player to remove')
+          .addOptions(
+              mission.players.map((playerId, index) => 
+                  new StringSelectMenuOptionBuilder()
+                      .setLabel(mission.characterNames[index])
+                      .setDescription(`Player ID: ${playerId}`)
+                      .setValue(`${index}`)
+              )
+          );
+
+      const row = new ActionRowBuilder().addComponents(selectMenu);
+
+      const embed = {
+          color: getRandomColor(),
+          title: `Remove Player from ${missionName}`,
+          description: 'Select a player to remove from the mission:',
+          fields: [
+              {
+                  name: 'Current Players',
+                  value: mission.characterNames.join('\n') || 'None'
+              }
+          ]
+      };
+
+      return interaction.reply({
+          embeds: [embed],
+          components: [row],
+          ephemeral: true
+      });
     } else if (subcommand === "info") {
       const missionName = interaction.options.getString("mission_name");
       const targetUser = interaction.options.getUser("user") || interaction.user;
