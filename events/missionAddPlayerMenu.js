@@ -19,18 +19,16 @@ module.exports = async (interaction) => {
             const missionSelect = components[1].components[0];
             const button = components[2].components[0];
 
-            // Update the appropriate select menu with the selection
+            // Just store the selection without updating the UI
             if (type === 'character') {
-                characterSelect.data.placeholder = (await characterModel.findOne({ characterId: selectedValue })).characterName;
                 characterSelect.data.values = [selectedValue];
             } else {
-                missionSelect.data.placeholder = selectedValue;
                 missionSelect.data.values = [selectedValue];
             }
 
             // Enable the button if both selections are made
-            const hasCharacter = characterSelect.data.placeholder !== 'Select a character';
-            const hasMission = missionSelect.data.placeholder !== 'Select a mission';
+            const hasCharacter = characterSelect.data.values?.length > 0;
+            const hasMission = missionSelect.data.values?.length > 0;
             
             const newButton = ButtonBuilder.from(button)
                 .setDisabled(!(hasCharacter && hasMission))
@@ -40,7 +38,8 @@ module.exports = async (interaction) => {
             const row2 = new ActionRowBuilder().addComponents(missionSelect);
             const row3 = new ActionRowBuilder().addComponents(newButton);
 
-            await interaction.editReply({
+            // Only update the button's disabled state
+            await interaction.update({
                 components: [row1, row2, row3]
             });
         }

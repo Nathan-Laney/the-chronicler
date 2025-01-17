@@ -2,7 +2,7 @@ const { SlashCommandBuilder } = require("discord.js");
 const missionModel = require("../models/missionSchema");
 const characterModel = require("../models/characterSchema");
 const profileModel = require("../models/profileSchema");
-const { StringSelectMenuBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle } = require("discord.js");
+const { StringSelectMenuBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle, StringSelectMenuOptionBuilder } = require("discord.js");
 
 // Function to generate random hex color
 function getRandomColor() {
