@@ -191,7 +191,7 @@ module.exports = {
       if (!missions.length) {
           return interaction.reply({
               content: "You don't have any active missions. Create a mission first!",
-              ephemeral: true
+              // ephemeral: true
           });
       }
 
@@ -219,7 +219,7 @@ module.exports = {
       return interaction.reply({
           embeds: [embed],
           components: [row],
-          ephemeral: true
+          // ephemeral: true
       });
     } else if (subcommand === "removeplayer") {
       const missionName = interaction.options.getString("mission_name");
@@ -234,7 +234,7 @@ module.exports = {
       if (!mission) {
           return interaction.reply({
               content: `Could not find active mission "${missionName}".`,
-              ephemeral: true
+              // ephemeral: true
           });
       }
 
@@ -243,14 +243,14 @@ module.exports = {
       if (mission.gmId !== interaction.user.id && !member.permissions.has("Administrator")) {
           return interaction.reply({
               content: "You must be the GM of this mission or have administrator permissions to remove players.",
-              ephemeral: true
+              // ephemeral: true
           });
       }
 
       if (!mission.players.length) {
           return interaction.reply({
               content: "This mission has no players to remove.",
-              ephemeral: true
+              // ephemeral: true
           });
       }
 
@@ -284,7 +284,7 @@ module.exports = {
       return interaction.reply({
           embeds: [embed],
           components: [row],
-          ephemeral: true
+          // ephemeral: true
       });
     } else if (subcommand === "info") {
       const missionName = interaction.options.getString("mission_name");
@@ -309,7 +309,7 @@ module.exports = {
           content: missionName
             ? `Could not find mission "${missionName}".`
             : `Could not find any active missions${targetUser.id !== interaction.user.id ? ` for ${targetUser}` : ''}.`,
-          ephemeral: true,
+          // ephemeral: true,
         });
       }
 
@@ -347,14 +347,14 @@ module.exports = {
       if (mission.gmId !== interaction.user.id && !member.permissions.has("ADMINISTRATOR")) {
         return interaction.reply({
           content: "You do not have permission to complete this mission.",
-          ephemeral: true,
+          // ephemeral: true,
         });
       }
 
       if (!mission) {
         return interaction.reply({
           content: "No mission found for the specified name.",
-          ephemeral: true,
+          // ephemeral: true,
         });
       }
 
@@ -391,14 +391,14 @@ module.exports = {
       if (mission.gmId !== interaction.user.id && !member.permissions.has("ADMINISTRATOR")) {
         return interaction.reply({
           content: "You do not have permission to delete this mission.",
-          ephemeral: true,
+          // ephemeral: true,
         });
       }
 
       if (!mission) {
         return interaction.reply({
           content: "No mission found for the specified name.",
-          ephemeral: true,
+          // ephemeral: true,
         });
       }
 

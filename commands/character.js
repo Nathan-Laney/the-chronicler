@@ -271,12 +271,12 @@ module.exports = {
           // Reply to the user with a success message
           await interaction.reply({
             content: `Character ${character.characterName} created${character.class ? ` with class \`${character.class}\`` : ''}.`,
-            ephemeral: true,
+            // ephemeral: true,
           });
         } else {
           await interaction.reply({
             content: "Character already exists.",
-            ephemeral: true,
+            // ephemeral: true,
           });
         }
       } catch (error) {
@@ -302,7 +302,7 @@ module.exports = {
         if (!characterData) {
           await interaction.reply({
             content: "Character not found.",
-            ephemeral: true,
+            // ephemeral: true,
           });
           return;
         }
@@ -355,7 +355,7 @@ module.exports = {
       if (characters.length === 0 && (!profile || !profile.missions.length)) {
         return interaction.reply({
           content: `No characters or missions found for user <@${userId}>!`,
-          ephemeral: true,
+          // ephemeral: true,
         });
       }
 
@@ -445,7 +445,7 @@ module.exports = {
             content: targetUser.id === interaction.user.id 
               ? `You don't have a character named "${characterName}"!`
               : `${targetUser.username} doesn't have a character named "${characterName}"!`,
-            ephemeral: true,
+            // ephemeral: true,
           });
         }
 
@@ -521,7 +521,7 @@ module.exports = {
       if (!character) {
         return interaction.reply({
           content: `Character **${characterName}** not found!`,
-          ephemeral: true,
+          // ephemeral: true,
         });
       }
 
@@ -549,7 +549,7 @@ module.exports = {
           if (!character) {
             await interaction.reply({
               content: "Character not found.",
-              ephemeral: true,
+              // ephemeral: true,
             });
             return;
           }
@@ -597,7 +597,7 @@ module.exports = {
           if (!character) {
             await interaction.reply({
               content: "Character not found.",
-              ephemeral: true,
+              // ephemeral: true,
             });
             return;
           }
