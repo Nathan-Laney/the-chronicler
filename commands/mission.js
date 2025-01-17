@@ -40,16 +40,10 @@ module.exports = {
         )
         .addStringOption((option) =>
           option
-            .setName("character")
-            .setDescription("The character name of the user.")
-            .setRequired(true)
-            .setAutocomplete(true)
-        )
-        .addStringOption((option) =>
-          option
             .setName("mission_name")
             .setDescription("The name of the mission to add the player to.")
             .setRequired(false)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
@@ -176,7 +170,6 @@ module.exports = {
       });
     } else if (subcommand === "addplayer") {
       const userId = interaction.options.getUser("user").id;
-      const characterName = interaction.options.getString("character");
       const missionName = interaction.options.getString("mission_name");
       let mission;
 
@@ -200,14 +193,13 @@ module.exports = {
 
       // Get the character ID from the character model
       const character = await characterModel.findOne({
-        characterName,
         ownerId: userId,
         guildId: interaction.guild.id,
       });
 
       if (!character) {
         return interaction.reply({
-          content: `Character **${characterName}** not found for user <@${userId}>!`,
+          content: `Character not found for user <@${userId}>!`,
         });
       }
 
@@ -219,17 +211,17 @@ module.exports = {
 
       if (activeMission) {
         return interaction.reply({
-          content: `Character **${characterName}** is already in an active mission: **${activeMission.missionName}**!`,
+          content: `Character is already in an active mission: **${activeMission.missionName}**!`,
         });
       }
 
       mission.players.push(userId);
-      mission.characterNames.push(characterName);
+      mission.characterNames.push(character.characterName);
       mission.characterIds.push(character.characterId); // Add character ID to the mission
       await mission.save();
 
       return interaction.reply({
-        content: `Player <@${userId}> with character **${characterName}** added to mission **${mission.missionName}**!`,
+        content: `Player <@${userId}> with character **${character.characterName}** added to mission **${mission.missionName}**!`,
       });
     } else if (subcommand === "info") {
       const missionName = interaction.options.getString("mission_name");
