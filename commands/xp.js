@@ -20,6 +20,7 @@ module.exports = {
                 .setName("character_name")
                 .setDescription("The character to add XP to.")
                 .setRequired(true)
+                .setAutocomplete(true)
             )
             .addIntegerOption((option) =>
               option
@@ -33,6 +34,7 @@ module.exports = {
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
                 .setRequired(false)
+                .setAutocomplete(true)
             )
         )
         .addSubcommand((subcommand) =>
@@ -51,6 +53,7 @@ module.exports = {
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
                 .setRequired(false)
+                .setAutocomplete(true)
             )
         )
     )
@@ -67,6 +70,7 @@ module.exports = {
                 .setName("character_name")
                 .setDescription("The character to remove XP from.")
                 .setRequired(true)
+                .setAutocomplete(true)
             )
             .addIntegerOption((option) =>
               option
@@ -80,6 +84,7 @@ module.exports = {
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
                 .setRequired(false)
+                .setAutocomplete(true)
             )
         )
         .addSubcommand((subcommand) =>
@@ -98,6 +103,7 @@ module.exports = {
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
                 .setRequired(false)
+                .setAutocomplete(true)
             )
         )
     )

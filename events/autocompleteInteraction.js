@@ -64,8 +64,8 @@ module.exports = {
         // Handle mission name autocompletion
         else if (focusedOption.name === 'mission' || focusedOption.name === 'mission_name') {
             const missions = await missionModel.find({ 
-                guildId: interaction.guildId,
-                missionStatus: 'active'  // Only show active missions
+                guildId: interaction.guildId
+                // Removed missionStatus filter to show all missions
             });
 
             let choices = [];
@@ -82,7 +82,7 @@ module.exports = {
             const filtered = missions
                 .filter(mission => mission.missionName.toLowerCase().includes(focusedOption.value.toLowerCase()))
                 .map(mission => ({
-                    name: `Existing: ${mission.missionName}`,
+                    name: `Existing: ${mission.missionName}${mission.missionStatus === 'complete' ? ' (Completed)' : ''}`,
                     value: mission.missionName
                 }));
             
