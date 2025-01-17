@@ -222,53 +222,8 @@ module.exports = {
           ephemeral: true
       });
     } else if (subcommand === "removeplayer") {
-      const missionName = interaction.options.getString("mission_name");
-      const mission = await missionModel.findOne({ 
-        missionName,
-        gmId: interaction.user.id,
-        guildId: interaction.guild.id
-      });
-
-      if (!mission) {
-        return interaction.reply({
-          content: `Could not find mission "${missionName}".`,
-          ephemeral: true,
-        });
-      }
-
-      if (!mission.players?.length) {
-        return interaction.reply({
-          content: `No players in mission "${missionName}".`,
-          ephemeral: true,
-        });
-      }
-
-      // Create dropdown with current players
-      const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId(`missionRemovePlayer_${missionName}`)
-        .setPlaceholder('Select a player to remove')
-        .addOptions(
-          mission.players.map((playerId, index) => ({
-            label: mission.characterNames[index],
-            description: `Player: <@${playerId}>`,
-            value: `${index}`
-          }))
-        );
-
-      // Create confirm button
-      const confirmButton = new ButtonBuilder()
-        .setCustomId(`confirmRemovePlayer_${missionName}`)
-        .setLabel('Remove Selected Player')
-        .setStyle(ButtonStyle.Danger);
-
-      const row1 = new ActionRowBuilder().addComponents(selectMenu);
-      const row2 = new ActionRowBuilder().addComponents(confirmButton);
-
-      return interaction.reply({
-        content: `Select a player to remove from mission "${missionName}":`,
-        components: [row1, row2],
-        ephemeral: true
-      });
+      // Let the event handler handle this
+      return;
     } else if (subcommand === "info") {
       const missionName = interaction.options.getString("mission_name");
       const targetUser = interaction.options.getUser("user") || interaction.user;
