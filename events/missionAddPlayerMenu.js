@@ -1,4 +1,4 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, StringSelectMenuBuilder } = require('discord.js');
 const characterModel = require("../models/characterSchema");
 const missionModel = require("../models/missionSchema");
 
@@ -6,29 +6,30 @@ module.exports = async (interaction) => {
     try {
         // Handle the select menu interactions
         if (interaction.isStringSelectMenu() && interaction.customId.startsWith('missionAddPlayer_')) {
-            if (!interaction.deferred && !interaction.replied) {
-                await interaction.deferUpdate();
-            }
+            console.log('Handling select menu interaction');
+            await interaction.deferUpdate();
 
             const [_, type, userId] = interaction.customId.split('_');
             const selectedValue = interaction.values[0];
+            console.log('Selected value:', selectedValue, 'Type:', type);
 
-            // Store the selection in the message components
+            // Get the current components
             const components = interaction.message.components;
-            const characterSelect = components[0].components[0];
-            const missionSelect = components[1].components[0];
+            const characterSelect = StringSelectMenuBuilder.from(components[0].components[0]);
+            const missionSelect = StringSelectMenuBuilder.from(components[1].components[0]);
             const button = components[2].components[0];
 
-            // Just store the selection without updating the UI
+            // Update the appropriate select menu's values
             if (type === 'character') {
-                characterSelect.data.values = [selectedValue];
+                characterSelect.setDefaultValues([selectedValue]);
             } else {
-                missionSelect.data.values = [selectedValue];
+                missionSelect.setDefaultValues([selectedValue]);
             }
 
-            // Enable the button if both selections are made
-            const hasCharacter = characterSelect.data.values?.length > 0;
-            const hasMission = missionSelect.data.values?.length > 0;
+            // Check if both selections are made
+            const hasCharacter = characterSelect.data.default_values?.length > 0;
+            const hasMission = missionSelect.data.default_values?.length > 0;
+            console.log('Selections:', { hasCharacter, hasMission });
             
             const newButton = ButtonBuilder.from(button)
                 .setDisabled(!(hasCharacter && hasMission))
@@ -38,26 +39,26 @@ module.exports = async (interaction) => {
             const row2 = new ActionRowBuilder().addComponents(missionSelect);
             const row3 = new ActionRowBuilder().addComponents(newButton);
 
-            // Only update the button's disabled state
-            await interaction.update({
+            await interaction.editReply({
                 components: [row1, row2, row3]
             });
+            
+            console.log('Successfully updated components');
         }
         
         // Handle the submit button interaction
         else if (interaction.isButton() && interaction.customId.startsWith('confirmAddPlayer_')) {
-            if (!interaction.deferred && !interaction.replied) {
-                await interaction.deferUpdate();
-            }
+            console.log('Handling submit button interaction');
+            await interaction.deferUpdate();
 
             const [_, userId] = interaction.customId.split('_');
 
             // Get selections from the stored components
-            const characterSelect = interaction.message.components[0].components[0];
-            const missionSelect = interaction.message.components[1].components[0];
+            const characterSelect = StringSelectMenuBuilder.from(interaction.message.components[0].components[0]);
+            const missionSelect = StringSelectMenuBuilder.from(interaction.message.components[1].components[0]);
             
-            const selectedCharacterId = characterSelect.data.values[0];
-            const selectedMissionName = missionSelect.data.values[0];
+            const selectedCharacterId = characterSelect.data.default_values[0];
+            const selectedMissionName = missionSelect.data.default_values[0];
 
             // Find the mission
             const mission = await missionModel.findOne({

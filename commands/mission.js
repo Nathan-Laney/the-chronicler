@@ -233,11 +233,12 @@ module.exports = {
           .setCustomId(`missionAddPlayer_mission_${userId}`)
           .setPlaceholder('Select a mission')
           .addOptions(
-              missions.map(mission => ({
-                  label: mission.missionName,
-                  description: `${mission.characterNames.length} players`,
-                  value: mission.missionName
-              }))
+              missions.map(mission => 
+                  new StringSelectMenuOptionBuilder()
+                      .setLabel(mission.missionName)
+                      .setDescription(`${mission.characterNames.length} players`)
+                      .setValue(mission.missionName)
+              )
           );
 
       // Create the submit button (initially disabled)
