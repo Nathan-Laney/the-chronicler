@@ -178,7 +178,8 @@ module.exports = {
         content: `Mission **${missionName}** created successfully!`,
       });
     } else if (subcommand === "addplayer") {
-      const userId = interaction.options.getUser("user").id;
+      const targetUser = interaction.options.getUser("user");
+      console.log('DEBUG - Target user:', targetUser);
       
       // Get all missions the command user is GM of
       const missions = await missionModel.find({
@@ -196,7 +197,7 @@ module.exports = {
 
       // Create the mission select menu
       const missionSelect = new StringSelectMenuBuilder()
-          .setCustomId(`select_mission_for_player_${userId}`)
+          .setCustomId(`select_mission_for_player_${targetUser.id}`)
           .setPlaceholder('Select a mission')
           .addOptions(
               missions.map(mission => 
@@ -212,7 +213,7 @@ module.exports = {
       const embed = {
           color: getRandomColor(),
           title: 'Add Player to Mission',
-          description: `Select which mission to add <@${userId}> to.`,
+          description: `Select which mission to add <@${targetUser.id}> to.`,
       };
 
       return interaction.reply({

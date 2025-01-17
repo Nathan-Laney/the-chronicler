@@ -22,13 +22,17 @@ module.exports = {
             console.log('DEBUG - Processing character selection');
             await interaction.deferUpdate();
 
-            const [_, __, ___, missionName, userId] = interaction.customId.split('_');
+            const customIdParts = interaction.customId.split('_');
+            const userId = customIdParts[customIdParts.length - 1];
+            const missionName = customIdParts[customIdParts.length - 2];
             const selectedCharacterId = interaction.values[0];
             console.log('DEBUG - Selection details:', {
                 missionName,
                 userId,
                 selectedCharacterId,
-                guildId: interaction.guild.id
+                guildId: interaction.guild.id,
+                customId: interaction.customId,
+                parts: customIdParts
             });
 
             // Find the mission

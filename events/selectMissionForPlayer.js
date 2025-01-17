@@ -23,12 +23,15 @@ module.exports = {
             console.log('DEBUG - Processing mission selection');
             await interaction.deferUpdate();
 
-            const [_, __, ___, userId] = interaction.customId.split('_');
+            const customIdParts = interaction.customId.split('_');
+            const userId = customIdParts[customIdParts.length - 1];
             const selectedMission = interaction.values[0];
             console.log('DEBUG - Selected mission:', {
                 userId,
                 selectedMission,
-                guildId: interaction.guild.id
+                guildId: interaction.guild.id,
+                customId: interaction.customId,
+                parts: customIdParts
             });
 
             // Get all characters for the user
