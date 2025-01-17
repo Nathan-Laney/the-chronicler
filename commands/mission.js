@@ -180,25 +180,12 @@ module.exports = {
     } else if (subcommand === "addplayer") {
       const userId = interaction.options.getUser("user").id;
       
-      // Get all characters for the user
-      const characters = await characterModel.find({
-          ownerId: userId,
-          guildId: interaction.guild.id
-      });
-
       // Get all missions the command user is GM of
       const missions = await missionModel.find({
           gmId: interaction.user.id,
           guildId: interaction.guild.id,
           missionStatus: "active"
       });
-
-      if (!characters.length) {
-          return interaction.reply({
-              content: `No characters found for user <@${userId}>!`,
-              ephemeral: true
-          });
-      }
 
       if (!missions.length) {
           return interaction.reply({
@@ -207,22 +194,9 @@ module.exports = {
           });
       }
 
-      // Create the character select menu
-      const characterSelect = new StringSelectMenuBuilder()
-          .setCustomId(`character_select`)
-          .setPlaceholder('Select a character')
-          .addOptions(
-              characters.map(char => 
-                  new StringSelectMenuOptionBuilder()
-                      .setLabel(char.characterName)
-                      .setDescription(`Level ${char.level} character`)
-                      .setValue(char.characterId)
-              )
-          );
-
       // Create the mission select menu
       const missionSelect = new StringSelectMenuBuilder()
-          .setCustomId(`mission_select`)
+          .setCustomId(`select_mission_for_player_${userId}`)
           .setPlaceholder('Select a mission')
           .addOptions(
               missions.map(mission => 
@@ -233,25 +207,17 @@ module.exports = {
               )
           );
 
-      // Create the submit button (initially disabled)
-      const button = new ButtonBuilder()
-          .setCustomId(`add_to_mission`)
-          .setLabel('Add to Mission')
-          .setStyle(ButtonStyle.Primary);
-
-      const row1 = new ActionRowBuilder().addComponents(characterSelect);
-      const row2 = new ActionRowBuilder().addComponents(missionSelect);
-      const row3 = new ActionRowBuilder().addComponents(button);
+      const row = new ActionRowBuilder().addComponents(missionSelect);
 
       const embed = {
           color: getRandomColor(),
           title: 'Add Player to Mission',
-          description: `Select a character and mission to add the player to.`,
+          description: `Select which mission to add <@${userId}> to.`,
       };
 
       return interaction.reply({
           embeds: [embed],
-          components: [row1, row2, row3],
+          components: [row],
           ephemeral: true
       });
     } else if (subcommand === "removeplayer") {
