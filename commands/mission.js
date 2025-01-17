@@ -48,6 +48,24 @@ module.exports = {
     )
     .addSubcommand((subcommand) =>
       subcommand
+        .setName("removeplayer")
+        .setDescription("Remove a player from the mission.")
+        .addUserOption((option) =>
+          option
+            .setName("user")
+            .setDescription("The user to remove from the mission.")
+            .setRequired(true)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("mission_name")
+            .setDescription("The name of the mission to remove the player from.")
+            .setRequired(false)
+            .setAutocomplete(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
         .setName("info")
         .setDescription("Get information about a mission.")
         .addStringOption((option) =>
@@ -222,6 +240,44 @@ module.exports = {
 
       return interaction.reply({
         content: `Player <@${userId}> with character **${character.characterName}** added to mission **${mission.missionName}**!`,
+      });
+    } else if (subcommand === "removeplayer") {
+      const userId = interaction.options.getUser("user").id;
+      const missionName = interaction.options.getString("mission_name");
+      let mission;
+
+      if (missionName) {
+        mission = await missionModel.findOne({ missionName, gmId: interaction.user.id });
+      } else {
+        mission = await missionModel.findOne({ 
+          gmId: interaction.user.id,
+          missionStatus: "active"
+        });
+      }
+
+      if (!mission) {
+        return interaction.reply({
+          content: missionName 
+            ? `Could not find mission "${missionName}".`
+            : "You have no active missions. Please specify a mission name or create a new mission.",
+          ephemeral: true,
+        });
+      }
+
+      const index = mission.players.indexOf(userId);
+      if (index === -1) {
+        return interaction.reply({
+          content: `Player <@${userId}> is not in mission **${mission.missionName}**.`,
+        });
+      }
+
+      mission.players.splice(index, 1);
+      mission.characterNames.splice(index, 1);
+      mission.characterIds.splice(index, 1);
+      await mission.save();
+
+      return interaction.reply({
+        content: `Player <@${userId}> removed from mission **${mission.missionName}**.`,
       });
     } else if (subcommand === "info") {
       const missionName = interaction.options.getString("mission_name");
