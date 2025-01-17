@@ -177,51 +177,74 @@ module.exports = {
       });
     } else if (subcommand === "addplayer") {
       const userId = interaction.options.getUser("user").id;
-      let mission;
-
-      mission = await missionModel.findOne({ 
-        gmId: interaction.user.id,
-        missionStatus: "active"
+      
+      // Get all characters for the user
+      const characters = await characterModel.find({
+          ownerId: userId,
+          guildId: interaction.guild.id
       });
 
-      if (!mission) {
-        return interaction.reply({
-          content: "You have no active missions. Please specify a mission name or create a new mission.",
-          ephemeral: true,
-        });
-      }
-
-      // Get the character ID from the character model
-      const character = await characterModel.findOne({
-        ownerId: userId,
-        guildId: interaction.guild.id,
+      // Get all missions the command user is GM of
+      const missions = await missionModel.find({
+          gmId: interaction.user.id,
+          guildId: interaction.guild.id,
+          missionStatus: "active"
       });
 
-      if (!character) {
-        return interaction.reply({
-          content: `Character not found for user <@${userId}>!`,
-        });
+      if (!characters.length) {
+          return interaction.reply({
+              content: `No characters found for user <@${userId}>!`,
+              ephemeral: true
+          });
       }
 
-      // Check if the character is already in an active mission
-      const activeMission = await missionModel.findOne({
-        characterIds: { $in: [character.characterId] },
-        missionStatus: "active",
-      });
-
-      if (activeMission) {
-        return interaction.reply({
-          content: `Character is already in an active mission: **${activeMission.missionName}**!`,
-        });
+      if (!missions.length) {
+          return interaction.reply({
+              content: "You don't have any active missions. Create a mission first!",
+              ephemeral: true
+          });
       }
 
-      mission.players.push(userId);
-      mission.characterNames.push(character.characterName);
-      mission.characterIds.push(character.characterId); // Add character ID to the mission
-      await mission.save();
+      // Create the character select menu
+      const characterSelect = new StringSelectMenuBuilder()
+          .setCustomId(`missionAddPlayer_character_${userId}`)
+          .setPlaceholder('Select a character')
+          .addOptions(
+              characters.map(char => 
+                  new StringSelectMenuOptionBuilder()
+                      .setLabel(char.characterName)
+                      .setDescription(`Level ${char.level} character`)
+                      .setValue(char.characterId)
+              )
+          );
+
+      // Create the mission select menu
+      const missionSelect = new StringSelectMenuBuilder()
+          .setCustomId(`missionAddPlayer_mission_${userId}`)
+          .setPlaceholder('Select a mission')
+          .addOptions(
+              missions.map(mission => ({
+                  label: mission.missionName,
+                  description: `${mission.characterNames.length} players`,
+                  value: mission.missionName
+              }))
+          );
+
+      // Create the submit button (initially disabled)
+      const button = new ButtonBuilder()
+          .setCustomId(`confirmAddPlayer_${userId}`)
+          .setLabel('Add to Mission')
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(true);
+
+      const row1 = new ActionRowBuilder().addComponents(characterSelect);
+      const row2 = new ActionRowBuilder().addComponents(missionSelect);
+      const row3 = new ActionRowBuilder().addComponents(button);
 
       return interaction.reply({
-        content: `Player <@${userId}> with character **${character.characterName}** added to mission **${mission.missionName}**!`,
+          content: `Select a character for <@${userId}> and a mission to add them to:`,
+          components: [row1, row2, row3],
+          ephemeral: true
       });
     } else if (subcommand === "removeplayer") {
       const missionName = interaction.options.getString("mission_name");
