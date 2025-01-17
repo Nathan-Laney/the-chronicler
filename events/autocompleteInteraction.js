@@ -89,16 +89,16 @@ module.exports = {
                 .filter(mission => mission.missionName.toLowerCase().includes(focusedOption.value.toLowerCase()))
                 .map(mission => {
                     let status = mission.missionStatus === 'active' ? '🟢' : '⭕';
-                    let gmInfo = '';
+                    let details = '';
                     
-                    // For info command, show more details
+                    // For info command, show player count
                     if (interaction.commandName === 'mission' && interaction.options.getSubcommand() === 'info') {
                         const playerCount = mission.characterNames?.length || 0;
-                        gmInfo = ` | GM: <@${mission.gmId}> | Players: ${playerCount}`;
+                        details = ` | ${playerCount} player${playerCount !== 1 ? 's' : ''}`;
                     }
                     
                     return {
-                        name: `${status} ${mission.missionName}${gmInfo}`,
+                        name: `${status} ${mission.missionName}${details}`,
                         value: mission.missionName
                     };
                 });

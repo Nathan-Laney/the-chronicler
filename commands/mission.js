@@ -283,50 +283,55 @@ module.exports = {
     } else if (subcommand === "info") {
       const missionName = interaction.options.getString("mission_name");
       const targetUser = interaction.options.getUser("user") || interaction.user;
-      let mission;
 
+      let mission;
       if (missionName) {
-        mission = await missionModel.findOne({ missionName, gmId: targetUser.id });
+        mission = await missionModel.findOne({ 
+          missionName,
+          guildId: interaction.guild.id
+        });
       } else {
-        mission = await missionModel.findOne({ gmId: targetUser.id });
+        mission = await missionModel.findOne({
+          gmId: targetUser.id,
+          guildId: interaction.guild.id,
+          missionStatus: "active",
+        }).sort({ createdAt: -1 });
       }
 
       if (!mission) {
         return interaction.reply({
-          content: targetUser.id === interaction.user.id 
-            ? "No mission found for you as GM."
-            : `No mission found for ${targetUser.username} as GM.`,
+          content: missionName
+            ? `Could not find mission "${missionName}".`
+            : `Could not find any active missions${targetUser.id !== interaction.user.id ? ` for ${targetUser}` : ''}.`,
+          ephemeral: true,
         });
       }
 
-      const playersInfo = mission.players.map((playerId, index) => {
-        return `<@${playerId}> - ${mission.characterNames[index]}`;
-      }).join("\n");
-
       const embed = {
         color: getRandomColor(),
-        title: `Mission: ${mission.missionName}`,
+        title: mission.missionName,
         fields: [
+          {
+            name: "Status",
+            value: mission.missionStatus.charAt(0).toUpperCase() + mission.missionStatus.slice(1),
+            inline: true,
+          },
           {
             name: "Game Master",
             value: `<@${mission.gmId}>`,
             inline: true,
           },
           {
-            name: "Status",
-            value: mission.missionStatus,
-            inline: true,
-          },
-          {
             name: "Players",
-            value: playersInfo || "No players added yet.",
+            value:
+              mission.characterNames.length > 0
+                ? mission.characterNames.join("\n")
+                : "No players yet",
           },
         ],
       };
 
-      return interaction.reply({
-        embeds: [embed],
-      });
+      return interaction.reply({ embeds: [embed] });
     } else if (subcommand === "complete") {
       const missionName = interaction.options.getString("mission_name");
       const mission = await missionModel.findOne({ missionName });
