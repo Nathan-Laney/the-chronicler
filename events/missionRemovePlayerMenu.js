@@ -82,7 +82,7 @@ module.exports = {
             if (interaction.deferred) {
                 return interaction.editReply(response);
             } else {
-                return interaction.reply({ ...response, ephemeral: true });
+                return interaction.reply({ ...response });
             }
         }
     }
