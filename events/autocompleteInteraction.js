@@ -63,9 +63,15 @@ module.exports = {
         
         // Handle mission name autocompletion
         else if (focusedOption.name === 'mission' || focusedOption.name === 'mission_name') {
+            // For addplayer and removeplayer, only show active missions
+            const activeOnly = interaction.commandName === 'mission' && 
+                (interaction.options.getSubcommand() === 'addplayer' || 
+                 interaction.options.getSubcommand() === 'removeplayer');
+
+            // Get missions based on command context
             const missions = await missionModel.find({ 
-                guildId: interaction.guildId
-                // Removed missionStatus filter to show all missions
+                guildId: interaction.guildId,
+                ...(activeOnly ? { missionStatus: 'active' } : {})
             });
 
             let choices = [];
@@ -81,10 +87,21 @@ module.exports = {
             // Add matching existing missions
             const filtered = missions
                 .filter(mission => mission.missionName.toLowerCase().includes(focusedOption.value.toLowerCase()))
-                .map(mission => ({
-                    name: `Existing: ${mission.missionName}${mission.missionStatus === 'complete' ? ' (Completed)' : ''}`,
-                    value: mission.missionName
-                }));
+                .map(mission => {
+                    let status = mission.missionStatus === 'active' ? '🟢' : '⭕';
+                    let gmInfo = '';
+                    
+                    // For info command, show more details
+                    if (interaction.commandName === 'mission' && interaction.options.getSubcommand() === 'info') {
+                        const playerCount = mission.characterNames?.length || 0;
+                        gmInfo = ` | GM: <@${mission.gmId}> | Players: ${playerCount}`;
+                    }
+                    
+                    return {
+                        name: `${status} ${mission.missionName}${gmInfo}`,
+                        value: mission.missionName
+                    };
+                });
             
             choices = [...choices, ...filtered].slice(0, 25);  // Discord has a limit of 25 choices
 

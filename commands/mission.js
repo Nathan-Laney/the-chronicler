@@ -73,6 +73,7 @@ module.exports = {
             .setName("mission_name")
             .setDescription("The name of the mission to report on.")
             .setRequired(false)
+            .setAutocomplete(true)
         )
         .addUserOption((option) =>
           option
