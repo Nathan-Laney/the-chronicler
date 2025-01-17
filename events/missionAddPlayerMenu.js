@@ -9,12 +9,18 @@ module.exports = {
             // Handle the initial command
             if (interaction.commandName === 'mission' && interaction.options.getSubcommand() === 'addplayer') {
                 const userId = interaction.options.getUser("user").id;
-                const missionName = interaction.options.getString("mission_name");
                 
                 // Get all characters for the user
                 const characters = await characterModel.find({
                     ownerId: userId,
                     guildId: interaction.guild.id
+                });
+
+                // Get all missions the command user is GM of
+                const missions = await missionModel.find({
+                    gmId: interaction.user.id,
+                    guildId: interaction.guild.id,
+                    missionStatus: "active"
                 });
 
                 if (!characters.length) {
@@ -24,9 +30,16 @@ module.exports = {
                     });
                 }
 
-                // Create the select menu
-                const select = new StringSelectMenuBuilder()
-                    .setCustomId(`mission_addplayer_select_${userId}_${missionName || 'latest'}`)
+                if (!missions.length) {
+                    return interaction.reply({
+                        content: "You don't have any active missions. Create a mission first!",
+                        ephemeral: true
+                    });
+                }
+
+                // Create the character select menu
+                const characterSelect = new StringSelectMenuBuilder()
+                    .setCustomId(`missionAddPlayer_character_${userId}`)
                     .setPlaceholder('Select a character')
                     .addOptions(
                         characters.map(char => 
@@ -37,94 +50,104 @@ module.exports = {
                         )
                     );
 
-                // Create the submit button
+                // Create the mission select menu
+                const missionSelect = new StringSelectMenuBuilder()
+                    .setCustomId(`missionAddPlayer_mission_${userId}`)
+                    .setPlaceholder('Select a mission')
+                    .addOptions(
+                        missions.map(mission => ({
+                            label: mission.missionName,
+                            description: `${mission.characterNames.length} players`,
+                            value: mission.missionName
+                        }))
+                    );
+
+                // Create the submit button (initially disabled)
                 const button = new ButtonBuilder()
-                    .setCustomId(`mission_addplayer_submit_${userId}_${missionName || 'latest'}`)
+                    .setCustomId(`confirmAddPlayer_${userId}`)
                     .setLabel('Add to Mission')
                     .setStyle(ButtonStyle.Primary)
-                    .setDisabled(true); // Initially disabled until a character is selected
+                    .setDisabled(true);
 
-                // Create and send the message with components
-                const row1 = new ActionRowBuilder().addComponents(select);
-                const row2 = new ActionRowBuilder().addComponents(button);
+                const row1 = new ActionRowBuilder().addComponents(characterSelect);
+                const row2 = new ActionRowBuilder().addComponents(missionSelect);
+                const row3 = new ActionRowBuilder().addComponents(button);
 
                 await interaction.reply({
-                    content: `Select a character for <@${userId}>:`,
-                    components: [row1, row2],
+                    content: `Select a character for <@${userId}> and a mission to add them to:`,
+                    components: [row1, row2, row3],
                     ephemeral: true
                 });
             }
             
-            // Handle the select menu interaction
-            else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('mission_addplayer_select_')) {
+            // Handle the select menu interactions
+            else if (interaction.isStringSelectMenu() && interaction.customId.startsWith('missionAddPlayer_')) {
                 if (!interaction.deferred && !interaction.replied) {
                     await interaction.deferUpdate();
                 }
-                
-                const [_, __, ___, userId, missionName] = interaction.customId.split('_');
-                const selectedCharId = interaction.values[0];
-                
-                // Get the character details for the message
-                const character = await characterModel.findOne({
-                    characterId: selectedCharId,
-                    ownerId: userId,
-                    guildId: interaction.guild.id,
-                });
 
-                // Update the button's custom ID to include the selected character
-                const button = ButtonBuilder
-                    .from(interaction.message.components[1].components[0])
-                    .setCustomId(`mission_addplayer_submit_${userId}_${missionName}_${selectedCharId}`)
-                    .setDisabled(false); // Enable the button now that a character is selected
+                const [_, type, userId] = interaction.customId.split('_');
+                const selectedValue = interaction.values[0];
+
+                // Store the selection in the message components
+                const components = interaction.message.components;
+                const characterSelect = components[0].components[0];
+                const missionSelect = components[1].components[0];
+                const button = components[2].components[0];
+
+                // Update the appropriate select menu with the selection
+                if (type === 'character') {
+                    characterSelect.data.placeholder = (await characterModel.findOne({ characterId: selectedValue })).characterName;
+                } else {
+                    missionSelect.data.placeholder = selectedValue;
+                }
+
+                // Enable the button if both selections are made
+                const hasCharacter = characterSelect.data.placeholder !== 'Select a character';
+                const hasMission = missionSelect.data.placeholder !== 'Select a mission';
                 
-                const row1 = ActionRowBuilder.from(interaction.message.components[0]);
-                const row2 = new ActionRowBuilder().addComponents(button);
+                const newButton = ButtonBuilder.from(button)
+                    .setDisabled(!(hasCharacter && hasMission))
+                    .setCustomId(`confirmAddPlayer_${userId}_${characterSelect.data.placeholder}_${missionSelect.data.placeholder}`);
+
+                const row1 = new ActionRowBuilder().addComponents(characterSelect);
+                const row2 = new ActionRowBuilder().addComponents(missionSelect);
+                const row3 = new ActionRowBuilder().addComponents(newButton);
 
                 await interaction.editReply({
-                    content: `Selected character: **${character.characterName}** (Level ${character.level})\nClick "Add to Mission" to confirm.`,
-                    components: [row1, row2]
+                    components: [row1, row2, row3]
                 });
             }
             
             // Handle the submit button interaction
-            else if (interaction.isButton() && interaction.customId.startsWith('mission_addplayer_submit_')) {
+            else if (interaction.isButton() && interaction.customId.startsWith('confirmAddPlayer_')) {
                 if (!interaction.deferred && !interaction.replied) {
                     await interaction.deferUpdate();
                 }
-                
-                const [_, __, ___, userId, missionNameOrLatest, characterId] = interaction.customId.split('_');
-                
-                if (!characterId) {
-                    return interaction.editReply({
-                        content: 'Please select a character first!',
-                        components: []
-                    });
-                }
+
+                const [_, userId, characterName, ...missionNameParts] = interaction.customId.split('_');
+                const missionName = missionNameParts.join('_');
 
                 // Find the mission
-                let mission;
-                if (missionNameOrLatest === 'latest') {
-                    mission = await missionModel.findOne({
-                        guildId: interaction.guild.id,
-                        missionStatus: "active",
-                    }).sort({ createdAt: -1 });
-                } else {
-                    mission = await missionModel.findOne({
-                        missionName: missionNameOrLatest,
-                        guildId: interaction.guild.id,
-                    });
-                }
+                const mission = await missionModel.findOne({
+                    missionName: missionName,
+                    gmId: interaction.user.id,
+                    guildId: interaction.guild.id,
+                });
 
                 if (!mission) {
                     return interaction.editReply({
-                        content: 'Mission not found!',
+                        content: `Mission "${missionName}" not found! Make sure you are the GM of this mission.`,
                         components: []
                     });
                 }
 
-                // Get the character
+                // Get the character from the stored placeholder
+                const characterSelect = interaction.message.components[0].components[0];
+                const selectedCharacterId = characterSelect.data.values?.[0];
+                
                 const character = await characterModel.findOne({
-                    characterId: characterId,
+                    characterId: selectedCharacterId,
                     ownerId: userId,
                     guildId: interaction.guild.id,
                 });
@@ -153,6 +176,7 @@ module.exports = {
                 // Add character to mission
                 mission.characterNames.push(character.characterName);
                 mission.characterIds.push(character.characterId);
+                mission.players.push(userId);
                 await mission.save();
 
                 // Remove the components and show success message

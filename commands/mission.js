@@ -39,13 +39,6 @@ module.exports = {
             .setDescription("The user to add to the mission.")
             .setRequired(true)
         )
-        .addStringOption((option) =>
-          option
-            .setName("mission_name")
-            .setDescription("The name of the mission to add the player to.")
-            .setRequired(false)
-            .setAutocomplete(true)
-        )
     )
     .addSubcommand((subcommand) =>
       subcommand
@@ -184,23 +177,16 @@ module.exports = {
       });
     } else if (subcommand === "addplayer") {
       const userId = interaction.options.getUser("user").id;
-      const missionName = interaction.options.getString("mission_name");
       let mission;
 
-      if (missionName) {
-        mission = await missionModel.findOne({ missionName, gmId: interaction.user.id });
-      } else {
-        mission = await missionModel.findOne({ 
-          gmId: interaction.user.id,
-          missionStatus: "active"
-        });
-      }
+      mission = await missionModel.findOne({ 
+        gmId: interaction.user.id,
+        missionStatus: "active"
+      });
 
       if (!mission) {
         return interaction.reply({
-          content: missionName 
-            ? `Could not find mission "${missionName}".`
-            : "You have no active missions. Please specify a mission name or create a new mission.",
+          content: "You have no active missions. Please specify a mission name or create a new mission.",
           ephemeral: true,
         });
       }
