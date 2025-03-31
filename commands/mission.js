@@ -99,6 +99,24 @@ module.exports = {
             .setRequired(true)
             .setAutocomplete(true)
         )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("rename")
+        .setDescription("Rename a mission you are the GM of.")
+        .addStringOption((option) =>
+          option
+            .setName("current_name")
+            .setDescription("The current name of the mission to rename.")
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("new_name")
+            .setDescription("The new name for the mission.")
+            .setRequired(true)
+        )
     ),
 
   async execute(interaction) {
@@ -484,6 +502,98 @@ module.exports = {
       return interaction.reply({
         content: `Mission **${missionName}** has been deleted successfully!`,
       });
+    } else if (subcommand === "rename") {
+      const currentName = interaction.options.getString("current_name");
+      const newName = interaction.options.getString("new_name");
+      const userId = interaction.user.id;
+      const guildId = interaction.guild.id;
+
+      try {
+        // Find the mission
+        const missionToRename = await missionModel.findOne({
+          missionName: currentName,
+          guildId: guildId,
+        });
+
+        if (!missionToRename) {
+          return interaction.reply({
+            content: `Could not find a mission named "${currentName}".`,
+            // ephemeral: true,
+          });
+        }
+
+        // Security Check 1: Check if user is GM or Admin
+        const member = await interaction.guild.members.fetch(userId);
+        if (
+          missionToRename.gmId !== userId &&
+          !member.permissions.has("Administrator")
+        ) {
+          return interaction.reply({
+            content:
+              "You must be the GM or an Administrator to rename this mission.",
+            // ephemeral: true,
+          });
+        }
+
+        // Security Check 2: Check if new name is already taken by the same GM
+        const existingMissionWithNewName = await missionModel.findOne({
+          missionName: newName,
+          gmId: missionToRename.gmId, // Check against the original GM's missions
+          guildId: guildId,
+          _id: { $ne: missionToRename._id }, // Exclude the mission being renamed
+        });
+
+        if (existingMissionWithNewName) {
+          return interaction.reply({
+            content: `The GM <@${missionToRename.gmId}> already has a mission named "${newName}". Choose a different name.`,
+            // ephemeral: true,
+          });
+        }
+
+        // --- Update Mission Name ---
+        const oldMissionName = missionToRename.missionName; // Store old name for updates
+        missionToRename.missionName = newName;
+        await missionToRename.save();
+
+        // --- Update GM's Profile ---
+        const gmProfile = await profileModel.findOne({
+          userId: missionToRename.gmId,
+          guildId: guildId,
+        });
+        if (gmProfile && gmProfile.missions.includes(oldMissionName)) {
+          const missionIndex = gmProfile.missions.indexOf(oldMissionName);
+          gmProfile.missions[missionIndex] = newName;
+          gmProfile.markModified("missions");
+          await gmProfile.save();
+        }
+
+        // --- Update Completed Characters' Profiles ---
+        // Only update characters if the mission was already completed, as that's when it's added to their list
+        if (missionToRename.missionStatus === "complete") {
+          for (const characterId of missionToRename.characterIds) {
+            const character = await characterModel.findOne({
+              characterId: characterId,
+              guildId: guildId,
+            });
+            if (character && character.missions.includes(oldMissionName)) {
+              const missionIndex = character.missions.indexOf(oldMissionName);
+              character.missions[missionIndex] = newName;
+              character.markModified("missions");
+              await character.save();
+            }
+          }
+        }
+
+        return interaction.reply({
+          content: `Mission "${oldMissionName}" has been successfully renamed to "${newName}".`,
+        });
+      } catch (error) {
+        console.error(`Error renaming mission: ${error}`);
+        return interaction.reply({
+          content: "An error occurred while renaming the mission.",
+          ephemeral: true,
+        });
+      }
     }
   },
 };
