@@ -20,6 +20,7 @@ module.exports = {
                 .setName("character_name")
                 .setDescription("The character to add XP to.")
                 .setRequired(true)
+                .setAutocomplete(true)
             )
             .addIntegerOption((option) =>
               option
@@ -33,6 +34,7 @@ module.exports = {
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
                 .setRequired(false)
+                .setAutocomplete(true)
             )
         )
         .addSubcommand((subcommand) =>
@@ -51,6 +53,7 @@ module.exports = {
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
                 .setRequired(false)
+                .setAutocomplete(true)
             )
         )
     )
@@ -67,6 +70,7 @@ module.exports = {
                 .setName("character_name")
                 .setDescription("The character to remove XP from.")
                 .setRequired(true)
+                .setAutocomplete(true)
             )
             .addIntegerOption((option) =>
               option
@@ -80,6 +84,7 @@ module.exports = {
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
                 .setRequired(false)
+                .setAutocomplete(true)
             )
         )
         .addSubcommand((subcommand) =>
@@ -98,6 +103,7 @@ module.exports = {
                 .setName("mission")
                 .setDescription("The mission from which you received XP.")
                 .setRequired(false)
+                .setAutocomplete(true)
             )
         )
     )
@@ -110,6 +116,7 @@ module.exports = {
             .setName("character_name")
             .setDescription("The character to transfer XP to.")
             .setRequired(true)
+            .setAutocomplete(true)
         )
         .addIntegerOption((option) =>
           option
@@ -162,7 +169,8 @@ module.exports = {
 
       const newExperience = result.experience;
       return interaction.editReply(
-        `${group === "add" ? "Added" : "Removed"} \`${amount}\` XP ${group === "add" ? "to" : "from"
+        `${group === "add" ? "Added" : "Removed"} \`${amount}\` XP ${
+          group === "add" ? "to" : "from"
         } **${username}**'s bank${mission ? ` from **${mission}**` : ""}.`
       );
     }
@@ -221,9 +229,14 @@ module.exports = {
       );
 
       return interaction.editReply(
-        `${group === "add" ? "Added" : "Removed"} **${amount}** XP ${group === "add" ? "to" : "from"
-        } **${character_name}**${mission ? ` from **${mission}**` : ""}. \n**${character_name}** now has a total of **${newExperience}** XP, ${group === "add" ? "gains" : "loses"
-        } **${earnings.gpGained}** GP and is now level **${earnings.characterLevel
+        `${group === "add" ? "Added" : "Removed"} **${amount}** XP ${
+          group === "add" ? "to" : "from"
+        } **${character_name}**${
+          mission ? ` from **${mission}**` : ""
+        }. \n**${character_name}** now has a total of **${newExperience}** XP, ${
+          group === "add" ? "gains" : "loses"
+        } **${earnings.gpGained}** GP and is now level **${
+          earnings.characterLevel
         }**.`
       );
     }
@@ -260,7 +273,9 @@ module.exports = {
       );
 
       if (!updatedProfile) {
-        return interaction.editReply("Error updating your profile. Please try again.");
+        return interaction.editReply(
+          "Error updating your profile. Please try again."
+        );
       }
 
       const result = await characterModel.findOneAndUpdate(
@@ -280,7 +295,9 @@ module.exports = {
           { userId: user },
           { $inc: { experience: amount } }
         );
-        return interaction.editReply("Error updating character XP. Transaction reverted.");
+        return interaction.editReply(
+          "Error updating character XP. Transaction reverted."
+        );
       }
       const newExperience = result.experience;
       const earnings = calculateGainedGPAndLevel(oldExperience, newExperience);
@@ -298,12 +315,14 @@ module.exports = {
       );
 
       if (!updatedCharacter) {
-        return interaction.editReply("Error updating character level. Please try again.");
+        return interaction.editReply(
+          "Error updating character level. Please try again."
+        );
       }
 
       return interaction.editReply(
         `Transferred **${amount}** XP from your bank to **${character_name}**. You have \`${updatedProfile.experience}\` XP left in your bank.\n**${character_name}** now has a total of **${newExperience}** XP, gains **${earnings.gpGained}** GP, and is now level **${earnings.characterLevel}**.`
       );
     }
-  }
+  },
 };
