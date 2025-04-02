@@ -117,6 +117,26 @@ module.exports = {
             .setDescription("The new name for the mission.")
             .setRequired(true)
         )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("description") // Changed from setdescription
+        .setDescription("Set the description for a mission you are the GM of.")
+        .addStringOption((option) =>
+          option
+            .setName("mission_name")
+            .setDescription(
+              "The name of the mission to set the description for."
+            )
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("description")
+            .setDescription("The description text for the mission.")
+            .setRequired(true)
+        )
     ),
 
   async execute(interaction) {
@@ -379,6 +399,16 @@ module.exports = {
             value: `<@${mission.gmId}>`,
             inline: true,
           },
+          // Add description field if it exists
+          ...(mission.description
+            ? [
+                {
+                  name: "Description",
+                  value: mission.description,
+                  inline: false, // Display description on its own line
+                },
+              ]
+            : []),
           {
             name: "Players",
             value:
@@ -591,6 +621,54 @@ module.exports = {
         console.error(`Error renaming mission: ${error}`);
         return interaction.reply({
           content: "An error occurred while renaming the mission.",
+          ephemeral: true,
+        });
+      }
+    } else if (subcommand === "description") {
+      // Changed from setdescription
+      const missionName = interaction.options.getString("mission_name");
+      const description = interaction.options.getString("description");
+      const userId = interaction.user.id;
+      const guildId = interaction.guild.id;
+
+      try {
+        // Find the mission
+        const missionToUpdate = await missionModel.findOne({
+          missionName: missionName,
+          guildId: guildId,
+        });
+
+        if (!missionToUpdate) {
+          return interaction.reply({
+            content: `Could not find a mission named "${missionName}".`,
+            // ephemeral: true,
+          });
+        }
+
+        // Security Check: Check if user is GM or Admin
+        const member = await interaction.guild.members.fetch(userId);
+        if (
+          missionToUpdate.gmId !== userId &&
+          !member.permissions.has("Administrator")
+        ) {
+          return interaction.reply({
+            content:
+              "You must be the GM or an Administrator to set the description for this mission.",
+            // ephemeral: true,
+          });
+        }
+
+        // Update the description
+        missionToUpdate.description = description;
+        await missionToUpdate.save();
+
+        return interaction.reply({
+          content: `Description for mission "${missionName}" has been successfully updated.`,
+        });
+      } catch (error) {
+        console.error(`Error setting mission description: ${error}`);
+        return interaction.reply({
+          content: "An error occurred while setting the mission description.",
           ephemeral: true,
         });
       }
