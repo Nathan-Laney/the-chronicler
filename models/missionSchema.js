@@ -33,7 +33,11 @@ const missionSchema = new mongoose.Schema({
   },
   missionStatus: {
     type: String,
-    default: 'active',
+    default: "active",
+  },
+  description: {
+    type: String,
+    required: false,
   },
 });
 
