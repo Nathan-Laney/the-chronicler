@@ -1,0 +1,1 @@
+Summarize the following Discord chat history concisely and accurately. Focus on the main topics discussed, key decisions made, and any action items.
