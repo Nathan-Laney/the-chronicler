@@ -1,1 +1,14 @@
-Summarize the following Discord chat history concisely and accurately. Focus on the main topics discussed, key decisions made, and any action items.
+I've attached a transcript of a Pathfinder play-by-post adventure. Please provide a concise 1-2 paragraph summary that captures the key story elements, including: 
+
+1. Main characters / party members
+2. Setting and primary quest / objective
+3. Major plot developments and turning points
+4. Significant challenges or enemies encountered
+5. How the adventure concluded (if applicable)
+
+When summarizing, please: 
+- Focus only on the narrative content (ignore timestamps, image links, emoji reactions, and meta-comments in parenthesis)
+- Maintain the tone and fantasy atmosphere of the Pathfinder setting 
+- Use present tense for clarity
+
+If you notice any particularly dramatic or pivotal moments in the story, please highlight those in your summary.
