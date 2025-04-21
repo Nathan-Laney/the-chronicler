@@ -251,20 +251,71 @@ module.exports = {
 
             const openRouterApiUrl = "https://openrouter.ai/api/v1/chat/completions";
 
-            const response = await axios.post(openRouterApiUrl, {
-                model: model,
-                messages: [
-                    { role: "user", content: summarizationPrompt },
-                    { role: "user", content: chatHistory }
-                ]
-            }, {
-                headers: {
-                    "Authorization": `Bearer ${openRouterApiKey}`,
-                    "Content-Type": "application/json"
+            let response;
+            try {
+                console.log(`[Summarize Command] Making API request to OpenRouter with model: ${model}`);
+                response = await axios.post(openRouterApiUrl, {
+                    model: model,
+                    messages: [
+                        { role: "user", content: summarizationPrompt },
+                        { role: "user", content: chatHistory }
+                    ]
+                }, {
+                    headers: {
+                        "Authorization": `Bearer ${openRouterApiKey}`,
+                        "Content-Type": "application/json"
+                    },
+                    timeout: 120000 // 2 minute timeout for long summaries
+                });
+                
+                console.log(`[Summarize Command] Received response from OpenRouter for model: ${model}`);
+            } catch (apiError) {
+                console.error(`[Summarize Command] API error with OpenRouter:`, apiError.message);
+                
+                if (apiError.response) {
+                    // The request was made and the server responded with a status code
+                    // that falls out of the range of 2xx
+                    console.error(`[Summarize Command] API error status:`, apiError.response.status);
+                    console.error(`[Summarize Command] API error data:`, JSON.stringify(apiError.response.data, null, 2));
+                } else if (apiError.request) {
+                    // The request was made but no response was received
+                    console.error(`[Summarize Command] No response received from API`);
+                } else {
+                    // Something happened in setting up the request that triggered an Error
+                    console.error(`[Summarize Command] Error setting up request:`, apiError.message);
                 }
-            });
+                
+                throw new Error(`API error with model ${model}: ${apiError.message}`);
+            }
 
-            const summary = response.data.choices[0].message.content;
+            // Handle different response formats from different models
+            let summary;
+            if (response.data && response.data.choices && response.data.choices.length > 0) {
+                // Standard OpenAI/OpenRouter format
+                if (response.data.choices[0].message && response.data.choices[0].message.content) {
+                    summary = response.data.choices[0].message.content;
+                }
+                // Gemini and some other models might use a different format
+                else if (response.data.choices[0].content) {
+                    summary = response.data.choices[0].content;
+                }
+                // Some models might return text directly
+                else if (response.data.choices[0].text) {
+                    summary = response.data.choices[0].text;
+                }
+                else {
+                    // If we can't find the content in the expected places, log the response structure
+                    console.error(`[Summarize Command] Unexpected response structure:`, JSON.stringify(response.data, null, 2));
+                    throw new Error(`Unexpected response format from model ${model}. Check logs for details.`);
+                }
+            } else if (response.data && response.data.response) {
+                // Some APIs might return response directly
+                summary = response.data.response;
+            } else {
+                console.error(`[Summarize Command] Invalid response structure:`, JSON.stringify(response.data, null, 2));
+                throw new Error(`Invalid response from model ${model}. Check logs for details.`);
+            }
+            
             console.log(`[Summarize Command] Successfully received summary for channel ${channel.id}.`);
 
             // Calculate approximate context length (characters in chat history)
@@ -272,7 +323,13 @@ module.exports = {
 
             // Store the summary in MongoDB
             try {
-                const summaryDoc = new Summary({
+                // Validate summary before saving
+                if (!summary || typeof summary !== 'string' || summary.trim() === '') {
+                    throw new Error('Summary is empty or invalid');
+                }
+                
+                // Create the document
+                const summaryDoc = {
                     channelId: channel.id,
                     channelName: channel.name,
                     model: model,
@@ -282,16 +339,21 @@ module.exports = {
                     metadata: {
                         guildId: channel.guild.id,
                         requestedBy: interaction.user.id,
-                        requestedByUsername: interaction.user.username
+                        requestedByUsername: interaction.user.username,
+                        modelVersion: response.data.model || model
                     }
-                });
+                };
                 
                 // Use findOneAndUpdate with upsert to avoid duplicates
-                await Summary.findOneAndUpdate(
+                const savedSummary = await Summary.findOneAndUpdate(
                     { channelId: channel.id, model: model },
                     summaryDoc,
                     { upsert: true, new: true }
                 );
+                
+                if (!savedSummary) {
+                    throw new Error('Failed to save summary to database');
+                }
                 
                 logDbOperation("SAVE", channel.id, model, true);
                 console.log(`[Summarize Command] Saved summary to MongoDB for channel ${channel.id} using model ${model}.`);
@@ -314,10 +376,17 @@ module.exports = {
                 console.error(`[Summarize Command] Error saving summary to MongoDB:`, dbError);
                 logDbOperation("SAVE", channel.id, model, false, dbError);
                 
+                // Log additional details for debugging
+                if (dbError.name === 'ValidationError') {
+                    for (const field in dbError.errors) {
+                        console.error(`[Summarize Command] Validation error in field ${field}:`, dbError.errors[field].message);
+                    }
+                }
+                
                 const errorEmbed = new EmbedBuilder()
                     .setColor(0xFF0000)
-                    .setTitle("Error")
-                    .setDescription("An error occurred while saving the summary to the database.");
+                    .setTitle("Database Error")
+                    .setDescription(`An error occurred while saving the summary to the database: ${dbError.message}`);
                 
                 await interaction.editReply({ embeds: [errorEmbed] });
                 return;
