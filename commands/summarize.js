@@ -44,7 +44,7 @@ module.exports = {
         ),
     async execute(interaction) {
         const channel = interaction.options.getChannel("channel");
-        const model = interaction.options.getString("model") || "deepseek/deepseek-chat-v3-0324:free";
+        const model = interaction.options.getString("model") || "google/gemini-2.5-pro-exp-03-25:free";
         
         // Send initial message that will be edited later
         const initialEmbed = new EmbedBuilder()
