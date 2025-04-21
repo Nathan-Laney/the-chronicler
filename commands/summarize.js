@@ -3,8 +3,24 @@ const fs = require("node:fs").promises;
 const path = require("node:path");
 const { exec } = require("node:child_process");
 const axios = require("axios");
+const mongoose = require("mongoose");
 
+// Import the Summary model
+const Summary = require("../models/summarySchema");
+
+// Path to the summarization prompt file
 const summariesDir = path.join(__dirname, "..", "summaries");
+
+// Logger function for database operations
+function logDbOperation(operation, channelId, model, success, error = null) {
+    const status = success ? "SUCCESS" : "ERROR";
+    const message = `[DB:${operation}] ${status} - Channel: ${channelId}, Model: ${model}`;
+    if (success) {
+        console.log(message);
+    } else {
+        console.error(`${message} - Error: ${error}`);
+    }
+}
 
 // Function to generate random hex color
 function getRandomColor() {
@@ -29,13 +45,6 @@ module.exports = {
     async execute(interaction) {
         const channel = interaction.options.getChannel("channel");
         const model = interaction.options.getString("model") || "deepseek/deepseek-chat-v3-0324:free";
-        
-        // Create a directory for this channel's summaries if it doesn't exist
-        const channelSummaryDir = path.join(summariesDir, channel.id);
-        await fs.mkdir(channelSummaryDir, { recursive: true });
-        
-        // Path to the index file that tracks all models for this channel
-        const indexFilePath = path.join(channelSummaryDir, "index.json");
         
         // Send initial message that will be edited later
         const initialEmbed = new EmbedBuilder()
@@ -67,50 +76,35 @@ module.exports = {
         });
 
         try {
-            // Check if we already have a summary for this model
+            // Check if we already have a summary for this model in MongoDB
             let modelSummaries = [];
             let currentIndex = 0;
             let foundRequestedModel = false;
             
             try {
-                // Try to read the index file
-                const indexData = await fs.readFile(indexFilePath, "utf8");
-                modelSummaries = JSON.parse(indexData);
+                // Try to find the summary in MongoDB
+                const dbSummary = await Summary.findOne({
+                    channelId: channel.id,
+                    model: model
+                });
                 
-                // Check if we already have a summary for the requested model
-                for (let i = 0; i < modelSummaries.length; i++) {
-                    if (modelSummaries[i].model === model) {
-                        currentIndex = i;
-                        foundRequestedModel = true;
-                        break;
-                    }
-                }
-            } catch (error) {
-                // If the index file doesn't exist, create an empty array
-                if (error.code === "ENOENT") {
-                    modelSummaries = [];
-                } else {
-                    console.error(`[Summarize Command] Error reading index file for channel ${channel.id}:`, error);
+                if (dbSummary) {
+                    // Found in MongoDB
+                    foundRequestedModel = true;
                     
-                    const errorEmbed = new EmbedBuilder()
-                        .setColor(0xFF0000)
-                        .setTitle("Error")
-                        .setDescription("An error occurred while checking cached summaries.");
+                    // Get all summaries for this channel for navigation
+                    const allChannelSummaries = await Summary.find({ channelId: channel.id })
+                        .sort({ timestamp: -1 });
                     
-                    await interaction.editReply({
-                        embeds: [errorEmbed],
-                        components: []
-                    });
-                    return;
-                }
-            }
-            
-            // If we found the requested model in cache, display it
-            if (foundRequestedModel) {
-                const cachedSummaryPath = path.join(channelSummaryDir, `${model.replace(/\//g, '_')}.json`);
-                try {
-                    const cachedData = await fs.readFile(cachedSummaryPath, "utf8");
-                    const cachedJson = JSON.parse(cachedData);
+                    modelSummaries = allChannelSummaries.map((summary) => ({
+                        model: summary.model,
+                        _id: summary._id,
+                        timestamp: summary.timestamp
+                    }));
+                    
+                    // Find the index of the current model
+                    currentIndex = modelSummaries.findIndex(s => s.model === model);
+                    if (currentIndex === -1) currentIndex = 0;
                     
                     // Update navigation buttons
                     prevButton.setDisabled(currentIndex === 0);
@@ -125,7 +119,7 @@ module.exports = {
                     const summaryEmbed = new EmbedBuilder()
                         .setColor(getRandomColor())
                         .setTitle(`Channel Summary - #${channel.name}`)
-                        .setDescription(cachedJson.summary)
+                        .setDescription(dbSummary.summary)
                         .setFooter({
                             text: `Model ${currentIndex + 1}/${modelSummaries.length} | ${model}`
                         });
@@ -135,19 +129,30 @@ module.exports = {
                         components: [updatedRow]
                     });
                     
+                    logDbOperation("FIND", channel.id, model, true);
                     console.log(`[Summarize Command] Sent cached summary for channel ${channel.id} using model ${model}`);
                     
                     // Set up a collector for button interactions
-                    setupButtonCollector(interaction, message, channelSummaryDir, modelSummaries, currentIndex, channel);
+                    setupButtonCollector(interaction, message, channel.id, modelSummaries, currentIndex, channel);
                     
                     return;
-                } catch (error) {
-                    console.error(`[Summarize Command] Error reading cached summary for model ${model}:`, error);
                 }
+            } catch (dbError) {
+                console.error(`[Summarize Command] Database error while checking for cached summaries:`, dbError);
+                logDbOperation("FIND", channel.id, model, false, dbError);
+                
+                const errorEmbed = new EmbedBuilder()
+                    .setColor(0xFF0000)
+                    .setTitle("Error")
+                    .setDescription("An error occurred while checking cached summaries.");
+                
+                await interaction.editReply({
+                    embeds: [errorEmbed],
+                    components: []
+                });
+                return;
             }
 
-            // Ensure the summaries directory exists
-            await fs.mkdir(summariesDir, { recursive: true });
 
             // Export channel history using DiscordChatExporter CLI
             const exportFilePath = path.join(summariesDir, `${channel.id}_history.txt`);
@@ -262,30 +267,61 @@ module.exports = {
             const summary = response.data.choices[0].message.content;
             console.log(`[Summarize Command] Successfully received summary for channel ${channel.id}.`);
 
-            // Cache the summary with model information
-            const cacheData = {
-                summary: summary,
-                model: model,
-                timestamp: new Date().toISOString()
-            };
-            
-            // Save the summary to a file named after the model
-            const modelFileName = model.replace(/\//g, '_');
-            const modelSummaryPath = path.join(channelSummaryDir, `${modelFileName}.json`);
-            await fs.writeFile(modelSummaryPath, JSON.stringify(cacheData), "utf8");
-            
-            // Update the index file
-            if (!foundRequestedModel) {
-                modelSummaries.push({
+            // Calculate approximate context length (characters in chat history)
+            const contextLength = chatHistory.length;
+
+            // Store the summary in MongoDB
+            try {
+                const summaryDoc = new Summary({
+                    channelId: channel.id,
+                    channelName: channel.name,
                     model: model,
-                    fileName: `${modelFileName}.json`,
-                    timestamp: new Date().toISOString()
+                    summary: summary,
+                    contextLength: contextLength,
+                    timestamp: new Date(),
+                    metadata: {
+                        guildId: channel.guild.id,
+                        requestedBy: interaction.user.id,
+                        requestedByUsername: interaction.user.username
+                    }
                 });
-                currentIndex = modelSummaries.length - 1;
+                
+                // Use findOneAndUpdate with upsert to avoid duplicates
+                await Summary.findOneAndUpdate(
+                    { channelId: channel.id, model: model },
+                    summaryDoc,
+                    { upsert: true, new: true }
+                );
+                
+                logDbOperation("SAVE", channel.id, model, true);
+                console.log(`[Summarize Command] Saved summary to MongoDB for channel ${channel.id} using model ${model}.`);
+                
+                
+                // Get all summaries for this channel for navigation
+                const allChannelSummaries = await Summary.find({ channelId: channel.id })
+                    .sort({ timestamp: -1 });
+                
+                modelSummaries = allChannelSummaries.map((summary, index) => ({
+                    model: summary.model,
+                    _id: summary._id,
+                    timestamp: summary.timestamp
+                }));
+                
+                // Find the index of the current model
+                currentIndex = modelSummaries.findIndex(s => s.model === model);
+                if (currentIndex === -1) currentIndex = 0;
+            } catch (dbError) {
+                console.error(`[Summarize Command] Error saving summary to MongoDB:`, dbError);
+                logDbOperation("SAVE", channel.id, model, false, dbError);
+                
+                const errorEmbed = new EmbedBuilder()
+                    .setColor(0xFF0000)
+                    .setTitle("Error")
+                    .setDescription("An error occurred while saving the summary to the database.");
+                
+                await interaction.editReply({ embeds: [errorEmbed] });
+                return;
             }
-            
-            await fs.writeFile(indexFilePath, JSON.stringify(modelSummaries), "utf8");
-            console.log(`[Summarize Command] Cached summary for channel ${channel.id} using model ${model}.`);
 
             // Update navigation buttons
             prevButton.setDisabled(currentIndex === 0);
@@ -313,7 +349,7 @@ module.exports = {
             });
             
             // Set up a collector for button interactions
-            setupButtonCollector(interaction, message, channelSummaryDir, modelSummaries, currentIndex, channel);
+            setupButtonCollector(interaction, message, channel.id, modelSummaries, currentIndex, channel);
 
             // Clean up the history file
             await fs.unlink(exportFilePath);
@@ -338,7 +374,7 @@ module.exports = {
 };
 
 // Helper function to set up button collector for navigation
-async function setupButtonCollector(interaction, message, channelSummaryDir, modelSummaries, currentIndex, channel) {
+async function setupButtonCollector(interaction, message, channelId, modelSummaries, currentIndex, channel) {
     // Create a filter for the collector to only collect button interactions from the original user
     const filter = i =>
         (i.customId === 'prev_summary' || i.customId === 'next_summary') &&
@@ -361,11 +397,19 @@ async function setupButtonCollector(interaction, message, channelSummaryDir, mod
         // Get the model info for the current index
         const modelInfo = modelSummaries[currentIndex];
         
-        // Read the summary for this model
         try {
-            const summaryPath = path.join(channelSummaryDir, modelInfo.fileName);
-            const summaryData = await fs.readFile(summaryPath, "utf8");
-            const summaryJson = JSON.parse(summaryData);
+            // Get summary from MongoDB
+            const query = modelInfo._id
+                ? { _id: modelInfo._id }
+                : { channelId: channelId, model: modelInfo.model };
+            
+            const dbSummary = await Summary.findOne(query);
+            
+            if (!dbSummary) {
+                throw new Error(`Summary not found for model ${modelInfo.model}`);
+            }
+            
+            logDbOperation("FIND", channelId, modelInfo.model, true);
             
             // Update navigation buttons
             const prevButton = new ButtonBuilder()
@@ -387,9 +431,9 @@ async function setupButtonCollector(interaction, message, channelSummaryDir, mod
             const updatedEmbed = new EmbedBuilder()
                 .setColor(getRandomColor())
                 .setTitle(`Channel Summary - #${channel.name}`)
-                .setDescription(summaryJson.summary)
+                .setDescription(dbSummary.summary)
                 .setFooter({
-                    text: `Model ${currentIndex + 1}/${modelSummaries.length} | ${modelInfo.model}`
+                    text: `Model ${currentIndex + 1}/${modelSummaries.length} | ${dbSummary.model}`
                 });
             
             // Update the message
