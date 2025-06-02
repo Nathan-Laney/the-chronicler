@@ -476,13 +476,6 @@ module.exports = {
               ? `You don't have a character named "${characterName}"!`
               : `${targetUser.username} doesn't have a character named "${characterName}"!`,
           // ephemeral: true,
-          });
-        }
-
-        // Check for active mission
-        const activeMission = await missionModel.findOne({
-          characterIds: character.characterId,
-          missionStatus: "active",
         });
       }
 
