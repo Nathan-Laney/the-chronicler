@@ -4,9 +4,10 @@ const characterModel = require("../models/characterSchema");
 const profileModel = require("../models/profileSchema");
 const { StringSelectMenuBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle, StringSelectMenuOptionBuilder } = require("discord.js");
 
+
 // Function to generate random hex color
 function getRandomColor() {
-  return Math.floor(Math.random()*16777215);
+  return Math.floor(Math.random() * 16777215);
 }
 
 module.exports = {
@@ -79,6 +80,7 @@ module.exports = {
             .setName("mission_name")
             .setDescription("The name of the mission to complete.")
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((subcommand) =>
@@ -90,6 +92,45 @@ module.exports = {
             .setName("mission_name")
             .setDescription("The name of the mission to delete.")
             .setRequired(true)
+            .setAutocomplete(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("rename")
+        .setDescription("Rename a mission you are the GM of.")
+        .addStringOption((option) =>
+          option
+            .setName("current_name")
+            .setDescription("The current name of the mission to rename.")
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("new_name")
+            .setDescription("The new name for the mission.")
+            .setRequired(true)
+        )
+    )
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("description") // Changed from setdescription
+        .setDescription("Set the description for a mission you are the GM of.")
+        .addStringOption((option) =>
+          option
+            .setName("mission_name")
+            .setDescription(
+              "The name of the mission to set the description for."
+            )
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
+        .addStringOption((option) =>
+          option
+            .setName("description")
+            .setDescription("The description text for the mission.")
+            .setRequired(true)
         )
     ),
 
@@ -99,7 +140,6 @@ module.exports = {
     if (subcommand === "list") {
       const activeMissions = await missionModel.find({ missionStatus: "active", guildId: interaction.guild.id });
       const completedMissions = await missionModel.find({ missionStatus: "complete", guildId: interaction.guild.id });
-
       const embed = {
         color: getRandomColor(),
         title: "Mission List",
@@ -111,7 +151,10 @@ module.exports = {
 
       for (const mission of activeMissions) {
         const member = await interaction.guild.members.fetch(mission.gmId);
-        const displayName = member.displayName || member.user.username || "Error, show Wolf this text. 29014";
+        const displayName =
+          member.displayName ||
+          member.user.username ||
+          "Error, show Wolf this text. 29014";
         if (!gmMissions[displayName]) {
           gmMissions[displayName] = { active: [], completed: [] };
         }
@@ -120,7 +163,10 @@ module.exports = {
 
       for (const mission of completedMissions) {
         const member = await interaction.guild.members.fetch(mission.gmId);
-        const displayName = member.displayName || member.user.username || "Error, show Wolf this text. 92102";
+        const displayName =
+          member.displayName ||
+          member.user.username ||
+          "Error, show Wolf this text. 92102";
         if (!gmMissions[displayName]) {
           gmMissions[displayName] = { active: [], completed: [] };
         }
@@ -179,6 +225,7 @@ module.exports = {
       });
     } else if (subcommand === "addplayer") {
       const targetUser = interaction.options.getUser("user");
+
       console.log('DEBUG - Target user:', targetUser);
       
       // Get all missions the command user is GM of
@@ -207,6 +254,7 @@ module.exports = {
                       .setValue(mission.missionName)
               )
           );
+
 
       const row = new ActionRowBuilder().addComponents(missionSelect);
 
@@ -252,10 +300,12 @@ module.exports = {
               content: "This mission has no players to remove.",
               // ephemeral: true
           });
+
       }
 
       // Create dropdown with current players
       const selectMenu = new StringSelectMenuBuilder()
+
           .setCustomId(`missionRemovePlayer_${missionName}`)
           .setPlaceholder('Select a player to remove')
           .addOptions(
@@ -270,6 +320,7 @@ module.exports = {
       const row = new ActionRowBuilder().addComponents(selectMenu);
 
       const embed = {
+
           color: getRandomColor(),
           title: `Remove Player from ${missionName}`,
           description: 'Select a player to remove from the mission:',
@@ -327,6 +378,16 @@ module.exports = {
             value: `<@${mission.gmId}>`,
             inline: true,
           },
+          // Add description field if it exists
+          ...(mission.description
+            ? [
+                {
+                  name: "Description",
+                  value: mission.description,
+                  inline: false, // Display description on its own line
+                },
+              ]
+            : []),
           {
             name: "Players",
             value:
@@ -342,9 +403,13 @@ module.exports = {
       const missionName = interaction.options.getString("mission_name");
       const mission = await missionModel.findOne({ missionName, guildId: interaction.guild.id });
 
+
       // Check if the user is the GM or has admin permissions
       const member = await interaction.guild.members.fetch(interaction.user.id);
-      if (mission.gmId !== interaction.user.id && !member.permissions.has("ADMINISTRATOR")) {
+      if (
+        mission.gmId !== interaction.user.id &&
+        !member.permissions.has("ADMINISTRATOR")
+      ) {
         return interaction.reply({
           content: "You do not have permission to complete this mission.",
           // ephemeral: true,
@@ -386,9 +451,13 @@ module.exports = {
       const missionName = interaction.options.getString("mission_name");
       const mission = await missionModel.findOne({ missionName, guildId: interaction.guild.id });
 
+
       // Check if the user is the GM or has admin permissions
       const member = await interaction.guild.members.fetch(interaction.user.id);
-      if (mission.gmId !== interaction.user.id && !member.permissions.has("ADMINISTRATOR")) {
+      if (
+        mission.gmId !== interaction.user.id &&
+        !member.permissions.has("ADMINISTRATOR")
+      ) {
         return interaction.reply({
           content: "You do not have permission to delete this mission.",
           // ephemeral: true,
@@ -410,7 +479,9 @@ module.exports = {
           guildId: interaction.guild.id,
         });
         if (character) {
-          character.missions = character.missions.filter(m => m !== missionName);
+          character.missions = character.missions.filter(
+            (m) => m !== missionName
+          );
           await character.save();
         }
       }
@@ -421,16 +492,160 @@ module.exports = {
         guildId: interaction.guild.id,
       });
       if (gmProfile) {
-        gmProfile.missions = gmProfile.missions.filter(m => m !== missionName);
+        gmProfile.missions = gmProfile.missions.filter(
+          (m) => m !== missionName
+        );
         await gmProfile.save();
       }
 
       // Delete the mission from the database
+
       await missionModel.deleteOne({ missionName, guildId: interaction.guild.id });
+
 
       return interaction.reply({
         content: `Mission **${missionName}** has been deleted successfully!`,
       });
+    } else if (subcommand === "rename") {
+      const currentName = interaction.options.getString("current_name");
+      const newName = interaction.options.getString("new_name");
+      const userId = interaction.user.id;
+      const guildId = interaction.guild.id;
+
+      try {
+        // Find the mission
+        const missionToRename = await missionModel.findOne({
+          missionName: currentName,
+          guildId: guildId,
+        });
+
+        if (!missionToRename) {
+          return interaction.reply({
+            content: `Could not find a mission named "${currentName}".`,
+            // ephemeral: true,
+          });
+        }
+
+        // Security Check 1: Check if user is GM or Admin
+        const member = await interaction.guild.members.fetch(userId);
+        if (
+          missionToRename.gmId !== userId &&
+          !member.permissions.has("Administrator")
+        ) {
+          return interaction.reply({
+            content:
+              "You must be the GM or an Administrator to rename this mission.",
+            // ephemeral: true,
+          });
+        }
+
+        // Security Check 2: Check if new name is already taken by the same GM
+        const existingMissionWithNewName = await missionModel.findOne({
+          missionName: newName,
+          gmId: missionToRename.gmId, // Check against the original GM's missions
+          guildId: guildId,
+          _id: { $ne: missionToRename._id }, // Exclude the mission being renamed
+        });
+
+        if (existingMissionWithNewName) {
+          return interaction.reply({
+            content: `The GM <@${missionToRename.gmId}> already has a mission named "${newName}". Choose a different name.`,
+            // ephemeral: true,
+          });
+        }
+
+        // --- Update Mission Name ---
+        const oldMissionName = missionToRename.missionName; // Store old name for updates
+        missionToRename.missionName = newName;
+        await missionToRename.save();
+
+        // --- Update GM's Profile ---
+        const gmProfile = await profileModel.findOne({
+          userId: missionToRename.gmId,
+          guildId: guildId,
+        });
+        if (gmProfile && gmProfile.missions.includes(oldMissionName)) {
+          const missionIndex = gmProfile.missions.indexOf(oldMissionName);
+          gmProfile.missions[missionIndex] = newName;
+          gmProfile.markModified("missions");
+          await gmProfile.save();
+        }
+
+        // --- Update Completed Characters' Profiles ---
+        // Only update characters if the mission was already completed, as that's when it's added to their list
+        if (missionToRename.missionStatus === "complete") {
+          for (const characterId of missionToRename.characterIds) {
+            const character = await characterModel.findOne({
+              characterId: characterId,
+              guildId: guildId,
+            });
+            if (character && character.missions.includes(oldMissionName)) {
+              const missionIndex = character.missions.indexOf(oldMissionName);
+              character.missions[missionIndex] = newName;
+              character.markModified("missions");
+              await character.save();
+            }
+          }
+        }
+
+        return interaction.reply({
+          content: `Mission "${oldMissionName}" has been successfully renamed to "${newName}".`,
+        });
+      } catch (error) {
+        console.error(`Error renaming mission: ${error}`);
+        return interaction.reply({
+          content: "An error occurred while renaming the mission.",
+          ephemeral: true,
+        });
+      }
+    } else if (subcommand === "description") {
+      // Changed from setdescription
+      const missionName = interaction.options.getString("mission_name");
+      const description = interaction.options.getString("description");
+      const userId = interaction.user.id;
+      const guildId = interaction.guild.id;
+
+      try {
+        // Find the mission
+        const missionToUpdate = await missionModel.findOne({
+          missionName: missionName,
+          guildId: guildId,
+        });
+
+        if (!missionToUpdate) {
+          return interaction.reply({
+            content: `Could not find a mission named "${missionName}".`,
+            // ephemeral: true,
+          });
+        }
+
+        // Security Check: Check if user is GM or Admin
+        const member = await interaction.guild.members.fetch(userId);
+        if (
+          missionToUpdate.gmId !== userId &&
+          !member.permissions.has("Administrator")
+        ) {
+          return interaction.reply({
+            content:
+              "You must be the GM or an Administrator to set the description for this mission.",
+            // ephemeral: true,
+          });
+        }
+
+        // Update the description
+        missionToUpdate.description = description;
+        await missionToUpdate.save();
+
+        return interaction.reply({
+          content: `Description for mission "${missionName}" has been successfully updated.`,
+        });
+      } catch (error) {
+        console.error(`Error setting mission description: ${error}`);
+        return interaction.reply({
+          content: "An error occurred while setting the mission description.",
+          ephemeral: true,
+        });
+      }
     }
   },
 };
