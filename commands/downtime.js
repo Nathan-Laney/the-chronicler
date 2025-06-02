@@ -128,7 +128,7 @@ module.exports = {
           activity ? ` on **${activity}**` : ""
         }. They have **${result.downtime}** days of downtime remaining.\n` +
         `This activity has been recorded in their history (total activities: ${activityCount}). ` +
-        `Use \`/character activities ${characterName}\` to view all downtime activities.`
+        `Use \`/character activities character_name:${characterName}\` to view all downtime activities.`
       );
     }
   },
