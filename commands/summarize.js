@@ -27,15 +27,29 @@ function getRandomColor() {
   return Math.floor(Math.random()*16777215);
 }
 
+// Function to format the title based on channel type
+function formatTitle(channel) {
+  if (channel.isThread()) {
+    return `Thread Summary - #${channel.parent.name} > ${channel.name}`;
+  } else {
+    return `Channel Summary - #${channel.name}`;
+  }
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("summarize")
-        .setDescription("Summarizes the message history of a channel.")
+        .setDescription("Summarizes the message history of a channel or thread.")
         .addChannelOption(option =>
             option.setName("channel")
-                .setDescription("The channel to summarize.")
+                .setDescription("The channel or thread to summarize.")
                 .setRequired(true)
-                .addChannelTypes(ChannelType.GuildText) // Restrict to text channels
+                .addChannelTypes(
+                    ChannelType.GuildText,      // Text channels
+                    ChannelType.PublicThread,   // Public threads
+                    ChannelType.PrivateThread,  // Private threads
+                    ChannelType.AnnouncementThread // Announcement threads
+                )
         )
         .addStringOption(option =>
             option.setName("model")
@@ -58,7 +72,7 @@ module.exports = {
         // Send initial message that will be edited later
         const initialEmbed = new EmbedBuilder()
             .setColor(getRandomColor())
-            .setTitle(`Channel Summary - #${channel.name}`)
+            .setTitle(formatTitle(channel))
             .setDescription("The Chronicler is summarizing the channel history...")
             .setFooter({ text: "Please wait while the summary is being generated" });
         
@@ -132,7 +146,7 @@ module.exports = {
                     
                     const summaryEmbed = new EmbedBuilder()
                         .setColor(getRandomColor())
-                        .setTitle(`Channel Summary - #${channel.name}`)
+                        .setTitle(formatTitle(channel))
                         .setDescription(dbSummary.summary)
                         .setFooter({
                             text: `Model ${currentIndex + 1}/${modelSummaries.length} | ${model}`
@@ -357,7 +371,12 @@ module.exports = {
                         guildId: channel.guild.id,
                         requestedBy: interaction.user.id,
                         requestedByUsername: interaction.user.username,
-                        modelVersion: response.data.model || model
+                        modelVersion: response.data.model || model,
+                        isThread: channel.isThread(),
+                        // Include parent channel info if it's a thread
+                        parentChannelId: channel.isThread() ? channel.parentId : null,
+                        parentChannelName: channel.isThread() ? channel.parent?.name : null,
+                        threadType: channel.isThread() ? channel.type : null
                     }
                 };
                 
@@ -422,7 +441,7 @@ module.exports = {
             // Create an embed for the summary
             const summaryEmbed = new EmbedBuilder()
                 .setColor(getRandomColor())
-                .setTitle(`Channel Summary - #${channel.name}`)
+                .setTitle(formatTitle(channel))
                 .setDescription(summary)
                 .setFooter({
                     text: `Model ${currentIndex + 1}/${modelSummaries.length} | ${model}`
@@ -516,7 +535,7 @@ async function setupButtonCollector(interaction, message, channelId, modelSummar
             // Create an updated embed
             const updatedEmbed = new EmbedBuilder()
                 .setColor(getRandomColor())
-                .setTitle(`Channel Summary - #${channel.name}`)
+                .setTitle(formatTitle(channel))
                 .setDescription(dbSummary.summary)
                 .setFooter({
                     text: `Model ${currentIndex + 1}/${modelSummaries.length} | ${dbSummary.model}`

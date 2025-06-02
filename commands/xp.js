@@ -171,7 +171,7 @@ module.exports = {
       return interaction.editReply(
         `${group === "add" ? "Added" : "Removed"} \`${amount}\` XP ${
           group === "add" ? "to" : "from"
-        } **${username}**'s bank${mission ? ` from **${mission}**` : ""}.`
+        } **${username}**'s bank${mission ? ` from **${mission}**` : ""}. You now have \`${newExperience}\` XP in your bank.`
       );
     }
 
