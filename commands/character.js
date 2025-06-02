@@ -150,6 +150,19 @@ module.exports = {
             .setRequired(true)
         )
     )
+    // Add a subcommand to view downtime activities
+    .addSubcommand((subcommand) =>
+      subcommand
+        .setName("activities")
+        .setDescription("View a character's downtime activities.")
+        .addStringOption((option) =>
+          option
+            .setName("character_name")
+            .setDescription("The name of the character.")
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
+    )
 
     // Add a subcommand group for managing character classes.
     .addSubcommandGroup((group) =>
@@ -435,12 +448,15 @@ module.exports = {
           ? `\n**Active Mission:** ${activeMission.missionName}`
           : "";
 
+        const activityCount = character.downtimeActivities?.length || 0;
         embed.fields.push({
           name: `\`${character.characterName}\``,
           value:
             `**Level:** ${character.level}\n` +
             `**Class:** ${character.class || "Not Set"}\n` +
             `**XP:** ${character.experience}\n` +
+            `**Downtime:** ${character.downtime || 0} days\n` +
+            `**Downtime Activities:** ${activityCount}\n` +
             `**Completed Missions:** ${
               character.missions.length > 0
                 ? character.missions.join(", ")
@@ -507,6 +523,11 @@ module.exports = {
             inline: true,
           },
           {
+            name: "Downtime",
+            value: `${character.downtime || 0} days`,
+            inline: true,
+          },
+          {
             name: "Class",
             value: character.class || "Not Set",
             inline: true,
@@ -532,6 +553,17 @@ module.exports = {
         embed.fields.push({
           name: "Description",
           value: character.description,
+          inline: false,
+        });
+      }
+
+      // Add downtime activities if they exist
+      if (character.downtimeActivities && character.downtimeActivities.length > 0) {
+        // Get the last 5 activities to avoid making the embed too large
+        const recentActivities = character.downtimeActivities.slice(-5).reverse();
+        embed.fields.push({
+          name: "Recent Downtime Activities",
+          value: recentActivities.join('\n'),
           inline: false,
         });
       }
@@ -731,6 +763,62 @@ module.exports = {
             ephemeral: true,
           });
         }
+      }
+    } else if (subcommand === "activities") {
+      const characterName = interaction.options.getString("character_name");
+      
+      try {
+        // Find the character
+        const character = await characterModel.findOne({
+          ownerId: interaction.user.id,
+          characterName: characterName,
+        });
+
+        if (!character) {
+          return interaction.reply({
+            content: `Character **${characterName}** not found!`,
+          });
+        }
+
+        // Check if the character has any downtime activities
+        if (!character.downtimeActivities || character.downtimeActivities.length === 0) {
+          return interaction.reply({
+            content: `**${characterName}** hasn't spent any downtime yet.`,
+          });
+        }
+
+        // Create an embed to display the activities
+        const embed = {
+          color: getRandomColor(),
+          title: `Downtime Activities - **${characterName}**`,
+          description: `**${characterName}** has **${character.downtime}** days of downtime remaining.`,
+          fields: []
+        };
+
+        // Group activities by chunks of 10 to avoid hitting embed field limits
+        const activityChunks = [];
+        for (let i = 0; i < character.downtimeActivities.length; i += 10) {
+          activityChunks.push(character.downtimeActivities.slice(i, i + 10));
+        }
+
+        // Add each chunk as a field
+        activityChunks.forEach((chunk, index) => {
+          embed.fields.push({
+            name: `Activities ${index * 10 + 1}-${Math.min((index + 1) * 10, character.downtimeActivities.length)}`,
+            value: chunk.join('\n'),
+            inline: false,
+          });
+        });
+
+        return interaction.reply({
+          embeds: [embed],
+        });
+      } catch (error) {
+        console.error(`Error displaying downtime activities: ${error}`);
+        return interaction.reply({
+          content: "An error occurred while retrieving downtime activities.",
+          ephemeral: true,
+        });
       }
     }
   },

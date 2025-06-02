@@ -22,11 +22,19 @@ const profileSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  downtime: {
+    type: Number,
+    default: 0,
+  },
   level: {
     type: Number,
     default: 3,
   },
   missions: {
+    type: Array,
+    default: [],
+  },
+  downtimeActivities: {
     type: Array,
     default: [],
   },

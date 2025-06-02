@@ -189,7 +189,12 @@ module.exports = {
 
       let update;
       if (group === "add") {
-        update = { $inc: { experience: amount } };
+        update = {
+          $inc: {
+            experience: amount,
+            downtime: amount * 2 // Add 2 days of downtime per 1 XP
+          }
+        };
         if (mission) {
           update.$push = { missions: mission };
         }
@@ -237,7 +242,7 @@ module.exports = {
           group === "add" ? "gains" : "loses"
         } **${earnings.gpGained}** GP and is now level **${
           earnings.characterLevel
-        }**.`
+        }**${group === "add" ? `, and gained **${amount * 2}** days of downtime` : ""}.`
       );
     }
     if (subcommand === "transfer") {
@@ -284,7 +289,10 @@ module.exports = {
           characterName: character_name,
         },
         {
-          $inc: { experience: amount },
+          $inc: {
+            experience: amount,
+            downtime: amount * 2 // Add 2 days of downtime per 1 XP
+          },
         },
         { new: true } // Ensure we get the updated character
       );
@@ -321,7 +329,7 @@ module.exports = {
       }
 
       return interaction.editReply(
-        `Transferred **${amount}** XP from your bank to **${character_name}**. You have \`${updatedProfile.experience}\` XP left in your bank.\n**${character_name}** now has a total of **${newExperience}** XP, gains **${earnings.gpGained}** GP, and is now level **${earnings.characterLevel}**.`
+        `Transferred **${amount}** XP from your bank to **${character_name}**. You have \`${updatedProfile.experience}\` XP left in your bank.\n**${character_name}** now has a total of **${newExperience}** XP, gains **${earnings.gpGained}** GP, and is now level **${earnings.characterLevel}**. They also gained **${amount * 2}** days of downtime.`
       );
     }
   },
