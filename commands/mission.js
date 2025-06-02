@@ -2,13 +2,8 @@ const { SlashCommandBuilder } = require("discord.js");
 const missionModel = require("../models/missionSchema");
 const characterModel = require("../models/characterSchema");
 const profileModel = require("../models/profileSchema");
-const {
-  StringSelectMenuBuilder,
-  ButtonBuilder,
-  ActionRowBuilder,
-  ButtonStyle,
-  StringSelectMenuOptionBuilder,
-} = require("discord.js");
+const { StringSelectMenuBuilder, ButtonBuilder, ActionRowBuilder, ButtonStyle, StringSelectMenuOptionBuilder } = require("discord.js");
+
 
 // Function to generate random hex color
 function getRandomColor() {
@@ -143,15 +138,8 @@ module.exports = {
     const subcommand = interaction.options.getSubcommand();
 
     if (subcommand === "list") {
-      const activeMissions = await missionModel.find({
-        missionStatus: "active",
-        guildId: interaction.guild.id,
-      });
-      const completedMissions = await missionModel.find({
-        missionStatus: "complete",
-        guildId: interaction.guild.id,
-      });
-
+      const activeMissions = await missionModel.find({ missionStatus: "active", guildId: interaction.guild.id });
+      const completedMissions = await missionModel.find({ missionStatus: "complete", guildId: interaction.guild.id });
       const embed = {
         color: getRandomColor(),
         title: "Mission List",
@@ -237,148 +225,141 @@ module.exports = {
       });
     } else if (subcommand === "addplayer") {
       const targetUser = interaction.options.getUser("user");
-      console.log("DEBUG - Target user:", targetUser);
 
+      console.log('DEBUG - Target user:', targetUser);
+      
       // Get all missions the command user is GM of
       const missions = await missionModel.find({
-        gmId: interaction.user.id,
-        guildId: interaction.guild.id,
-        missionStatus: "active",
+          gmId: interaction.user.id,
+          guildId: interaction.guild.id,
+          missionStatus: "active"
       });
 
       if (!missions.length) {
-        return interaction.reply({
-          content:
-            "You don't have any active missions. Create a mission first!",
-          // ephemeral: true
-        });
+          return interaction.reply({
+              content: "You don't have any active missions. Create a mission first!",
+              // ephemeral: true
+          });
       }
 
       // Create the mission select menu
       const missionSelect = new StringSelectMenuBuilder()
-        .setCustomId(`select_mission_for_player_${targetUser.id}`)
-        .setPlaceholder("Select a mission")
-        .addOptions(
-          missions.map((mission) =>
-            new StringSelectMenuOptionBuilder()
-              .setLabel(mission.missionName)
-              .setDescription(`${mission.characterNames.length} players`)
-              .setValue(mission.missionName)
-          )
-        );
+          .setCustomId(`select_mission_for_player_${targetUser.id}`)
+          .setPlaceholder('Select a mission')
+          .addOptions(
+              missions.map(mission => 
+                  new StringSelectMenuOptionBuilder()
+                      .setLabel(mission.missionName)
+                      .setDescription(`${mission.characterNames.length} players`)
+                      .setValue(mission.missionName)
+              )
+          );
+
 
       const row = new ActionRowBuilder().addComponents(missionSelect);
 
       const embed = {
-        color: getRandomColor(),
-        title: "Add Player to Mission",
-        description: `Select which mission to add <@${targetUser.id}> to.`,
+          color: getRandomColor(),
+          title: 'Add Player to Mission',
+          description: `Select which mission to add <@${targetUser.id}> to.`,
       };
 
       return interaction.reply({
-        embeds: [embed],
-        components: [row],
-        // ephemeral: true
+          embeds: [embed],
+          components: [row],
+          // ephemeral: true
       });
     } else if (subcommand === "removeplayer") {
       const missionName = interaction.options.getString("mission_name");
-
+      
       // Find the mission
       const mission = await missionModel.findOne({
-        missionName,
-        guildId: interaction.guild.id,
-        missionStatus: "active",
+          missionName,
+          guildId: interaction.guild.id,
+          missionStatus: "active"
       });
 
       if (!mission) {
-        return interaction.reply({
-          content: `Could not find active mission "${missionName}".`,
-          // ephemeral: true
-        });
+          return interaction.reply({
+              content: `Could not find active mission "${missionName}".`,
+              // ephemeral: true
+          });
       }
 
       // Check if user is GM or has admin permissions
       const member = await interaction.guild.members.fetch(interaction.user.id);
-      if (
-        mission.gmId !== interaction.user.id &&
-        !member.permissions.has("Administrator")
-      ) {
-        return interaction.reply({
-          content:
-            "You must be the GM of this mission or have administrator permissions to remove players.",
-          // ephemeral: true
-        });
+      if (mission.gmId !== interaction.user.id && !member.permissions.has("Administrator")) {
+          return interaction.reply({
+              content: "You must be the GM of this mission or have administrator permissions to remove players.",
+              // ephemeral: true
+          });
       }
 
       if (!mission.players.length) {
-        return interaction.reply({
-          content: "This mission has no players to remove.",
-          // ephemeral: true
-        });
+          return interaction.reply({
+              content: "This mission has no players to remove.",
+              // ephemeral: true
+          });
+
       }
 
       // Create dropdown with current players
       const selectMenu = new StringSelectMenuBuilder()
-        .setCustomId(`missionRemovePlayer_${missionName}`)
-        .setPlaceholder("Select a player to remove")
-        .addOptions(
-          mission.players.map((playerId, index) =>
-            new StringSelectMenuOptionBuilder()
-              .setLabel(mission.characterNames[index])
-              .setDescription(`Player ID: ${playerId}`)
-              .setValue(`${index}`)
-          )
-        );
+
+          .setCustomId(`missionRemovePlayer_${missionName}`)
+          .setPlaceholder('Select a player to remove')
+          .addOptions(
+              mission.players.map((playerId, index) => 
+                  new StringSelectMenuOptionBuilder()
+                      .setLabel(mission.characterNames[index])
+                      .setDescription(`Player ID: ${playerId}`)
+                      .setValue(`${index}`)
+              )
+          );
 
       const row = new ActionRowBuilder().addComponents(selectMenu);
 
       const embed = {
-        color: getRandomColor(),
-        title: `Remove Player from ${missionName}`,
-        description: "Select a player to remove from the mission:",
-        fields: [
-          {
-            name: "Current Players",
-            value: mission.characterNames.join("\n") || "None",
-          },
-        ],
+
+          color: getRandomColor(),
+          title: `Remove Player from ${missionName}`,
+          description: 'Select a player to remove from the mission:',
+          fields: [
+              {
+                  name: 'Current Players',
+                  value: mission.characterNames.join('\n') || 'None'
+              }
+          ]
       };
 
       return interaction.reply({
-        embeds: [embed],
-        components: [row],
-        // ephemeral: true
+          embeds: [embed],
+          components: [row],
+          // ephemeral: true
       });
     } else if (subcommand === "info") {
       const missionName = interaction.options.getString("mission_name");
-      const targetUser =
-        interaction.options.getUser("user") || interaction.user;
+      const targetUser = interaction.options.getUser("user") || interaction.user;
 
       let mission;
       if (missionName) {
-        mission = await missionModel.findOne({
+        mission = await missionModel.findOne({ 
           missionName,
-          guildId: interaction.guild.id,
+          guildId: interaction.guild.id
         });
       } else {
-        mission = await missionModel
-          .findOne({
-            gmId: targetUser.id,
-            guildId: interaction.guild.id,
-            missionStatus: "active",
-          })
-          .sort({ createdAt: -1 });
+        mission = await missionModel.findOne({
+          gmId: targetUser.id,
+          guildId: interaction.guild.id,
+          missionStatus: "active",
+        }).sort({ createdAt: -1 });
       }
 
       if (!mission) {
         return interaction.reply({
           content: missionName
             ? `Could not find mission "${missionName}".`
-            : `Could not find any active missions${
-                targetUser.id !== interaction.user.id
-                  ? ` for ${targetUser}`
-                  : ""
-              }.`,
+            : `Could not find any active missions${targetUser.id !== interaction.user.id ? ` for ${targetUser}` : ''}.`,
           // ephemeral: true,
         });
       }
@@ -389,9 +370,7 @@ module.exports = {
         fields: [
           {
             name: "Status",
-            value:
-              mission.missionStatus.charAt(0).toUpperCase() +
-              mission.missionStatus.slice(1),
+            value: mission.missionStatus.charAt(0).toUpperCase() + mission.missionStatus.slice(1),
             inline: true,
           },
           {
@@ -422,10 +401,8 @@ module.exports = {
       return interaction.reply({ embeds: [embed] });
     } else if (subcommand === "complete") {
       const missionName = interaction.options.getString("mission_name");
-      const mission = await missionModel.findOne({
-        missionName,
-        guildId: interaction.guild.id,
-      });
+      const mission = await missionModel.findOne({ missionName, guildId: interaction.guild.id });
+
 
       // Check if the user is the GM or has admin permissions
       const member = await interaction.guild.members.fetch(interaction.user.id);
@@ -472,10 +449,8 @@ module.exports = {
       });
     } else if (subcommand === "delete") {
       const missionName = interaction.options.getString("mission_name");
-      const mission = await missionModel.findOne({
-        missionName,
-        guildId: interaction.guild.id,
-      });
+      const mission = await missionModel.findOne({ missionName, guildId: interaction.guild.id });
+
 
       // Check if the user is the GM or has admin permissions
       const member = await interaction.guild.members.fetch(interaction.user.id);
@@ -524,10 +499,9 @@ module.exports = {
       }
 
       // Delete the mission from the database
-      await missionModel.deleteOne({
-        missionName,
-        guildId: interaction.guild.id,
-      });
+
+      await missionModel.deleteOne({ missionName, guildId: interaction.guild.id });
+
 
       return interaction.reply({
         content: `Mission **${missionName}** has been deleted successfully!`,

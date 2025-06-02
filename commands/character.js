@@ -194,68 +194,65 @@ module.exports = {
     )
 
     // Add a subcommand group for managing character missions.
-    .addSubcommandGroup(
-      (group) =>
-        group
-          // Set the name of the subgroup.
-          .setName("mission")
-          // Set the description for the subgroup.
-          .setDescription("Manage character missions.")
+    .addSubcommandGroup((group) =>
+      group
+        // Set the name of the subgroup.
+        .setName("mission")
+        // Set the description for the subgroup.
+        .setDescription("Manage character missions.")
 
-          // Add a subcommand to add a mission to an existing character.
-          .addSubcommand((subcommand) =>
-            subcommand
-              // Set the name of the subcommand.
-              .setName("add")
-              // Set the description for the subcommand.
-              .setDescription("Add a mission to a character.")
+        // Add a subcommand to add a mission to an existing character.
+        .addSubcommand((subcommand) =>
+          subcommand
+            // Set the name of the subcommand.
+            .setName("add")
+            // Set the description for the subcommand.
+            .setDescription("Add a mission to a character.")
 
-              // Add options to specify the character's name and the mission to add.
-              .addStringOption((option) =>
-                option
-                  // Set the name of the option.
-                  .setName("character_name")
-                  // Set the description for the option.
-                  .setDescription("The name of the character.")
+            // Add options to specify the character's name and the mission to add.
+            .addStringOption((option) =>
+              option
+                // Set the name of the option.
+                .setName("character_name")
+                // Set the description for the option.
+                .setDescription("The name of the character.")
 
-                  // Mark this option as required.
-                  .setRequired(true)
-                  .setAutocomplete(true)
-              )
+                // Mark this option as required.
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
 
-              .addStringOption((option) =>
-                option
-                  // Set the name of the option.
-                  .setName("mission")
-                  // Set the description for the option.
-                  .setDescription("The mission to add.")
+            .addStringOption((option) =>
+              option
+                // Set the name of the option.
+                .setName("mission")
+                // Set the description for the option.
+                .setDescription("The mission to add.")
 
-                  // Mark this option as required.
-                  .setRequired(true)
-                  .setAutocomplete(true)
-              )
-          )
-          .addSubcommand((subcommand) =>
-            subcommand
-              .setName("remove")
-              .setDescription("Remove a mission from a character.")
-              .addStringOption((option) =>
-                option
-                  .setName("character_name")
-                  .setDescription("The name of the character.")
-                  .setRequired(true)
-                  .setAutocomplete(true)
-              )
-              .addStringOption((option) =>
-                option
-                  .setName("mission")
-                  // Set the description for the option.
-                  .setDescription("The mission to remove.")
-                  .setRequired(true)
-                  .setAutocomplete(true)
-              )
-          ) // End of addSubcommand('remove')
-    ), // End of addSubcommandGroup('mission')
+                // Mark this option as required.
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((subcommand) =>
+          subcommand
+            .setName("remove")
+            .setDescription("Remove a mission from a character.")
+            .addStringOption((option) =>
+              option
+                .setName("character_name")
+                .setDescription("The name of the character.")
+                .setRequired(true)
+                .setAutocomplete(true)
+            )
+            .addStringOption((option) =>
+              option
+                .setName("mission")
+                .setDescription("The mission to remove.")
+                .setRequired(true)
+            )
+        )
+    ),
+
   async execute(interaction) {
     // Comma is now correctly placed after the builder chain
     // Get the subcommand name
@@ -297,9 +294,7 @@ module.exports = {
 
           // Reply to the user with a success message
           await interaction.reply({
-            content: `Character ${character.characterName} created${
-              character.class ? ` with class \`${character.class}\`` : ""
-            }.`,
+            content: `Character ${character.characterName} created${character.class ? ` with class \`${character.class}\`` : ''}.`,
             // ephemeral: true,
           });
         } else {
