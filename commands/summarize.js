@@ -41,10 +41,19 @@ module.exports = {
             option.setName("model")
                 .setDescription("The OpenRouter model to use for summarization.")
                 .setRequired(false)
+        )
+        .addBooleanOption(option =>
+            option.setName("force_resummarize")
+                .setDescription("Force a new summary even if one already exists.")
+                .setRequired(false)
         ),
     async execute(interaction) {
         const channel = interaction.options.getChannel("channel");
         const model = interaction.options.getString("model") || "google/gemini-2.0-flash-exp:free";
+        const forceResummarizeRaw = interaction.options.getBoolean("force_resummarize");
+        const forceResummarize = forceResummarizeRaw === true;
+        
+        console.log(`[Summarize Command] force_resummarize option value: ${forceResummarizeRaw}, converted to: ${forceResummarize}`);
         
         // Send initial message that will be edited later
         const initialEmbed = new EmbedBuilder()
@@ -81,6 +90,10 @@ module.exports = {
             let currentIndex = 0;
             let foundRequestedModel = false;
             
+            if (forceResummarize) {
+                console.log(`[Summarize Command] Force resummarize option enabled for channel ${channel.id} using model ${model}`);
+            }
+            
             try {
                 // Try to find the summary in MongoDB
                 const dbSummary = await Summary.findOne({
@@ -88,9 +101,10 @@ module.exports = {
                     model: model
                 });
                 
-                if (dbSummary) {
-                    // Found in MongoDB
+                if (dbSummary && !forceResummarize) {
+                    // Found in MongoDB and not forcing resummarization
                     foundRequestedModel = true;
+                    console.log(`[Summarize Command] Using cached summary for channel ${channel.id} using model ${model}`);
                     
                     // Get all summaries for this channel for navigation
                     const allChannelSummaries = await Summary.find({ channelId: channel.id })
@@ -136,6 +150,9 @@ module.exports = {
                     setupButtonCollector(interaction, message, channel.id, modelSummaries, currentIndex, channel);
                     
                     return;
+                } else if (dbSummary && forceResummarize) {
+                    console.log(`[Summarize Command] Existing summary found but force_resummarize is enabled. Generating new summary for channel ${channel.id} using model ${model}`);
+                    // Continue with the summarization process
                 }
             } catch (dbError) {
                 console.error(`[Summarize Command] Database error while checking for cached summaries:`, dbError);

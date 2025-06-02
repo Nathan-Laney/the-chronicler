@@ -122,6 +122,7 @@ Returns a distribution chart of all characters in the database.
 Summarizes the message history of a channel using an AI model.
 -   `channel`: The text channel to summarize.
 -   `model` (optional): The OpenRouter model to use for summarization (default: `google/gemini-2.0-flash-exp:free`).
+-   `force_resummarize` (optional): Force a new summary even if one already exists (default: `false`).
 
 ---
 
