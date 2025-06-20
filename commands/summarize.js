@@ -63,7 +63,7 @@ module.exports = {
         ),
     async execute(interaction) {
         const channel = interaction.options.getChannel("channel");
-        const model = interaction.options.getString("model") || "google/gemini-2.0-flash-exp:free";
+        const model = interaction.options.getString("model") || "google/gemini-2.5-flash";
         const forceResummarizeRaw = interaction.options.getBoolean("force_resummarize");
         const forceResummarize = forceResummarizeRaw === true;
         
