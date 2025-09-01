@@ -45,7 +45,7 @@ module.exports = {
             const analyze = interaction.options.getString('analyze') || 'level'; // Default to 'level'
             const availableOnly = interaction.options.getBoolean("available_only") || false;
 
-            // Find all character records
+            // Find all character records (excluding archived characters by default)
             let characterData = await characterModel.find();
             if (availableOnly) {
                 const activeMissions = await missionModel.find({
