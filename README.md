@@ -120,6 +120,23 @@ Manage missions (as a Game Master).
 
 ---
 
+## `/logs`
+View and analyze command logs. (Requires Administrator Permissions)
+
+- **`/logs recent`**: View recent command logs.
+  - `limit` (optional): Number of logs to retrieve (default: 10, max: 25).
+- **`/logs command`**: View logs for a specific command.
+  - `command_name`: The name of the command to view logs for.
+  - `limit` (optional): Number of logs to retrieve (default: 10, max: 25).
+- **`/logs user`**: View logs for a specific user.
+  - `user`: The user to view logs for.
+  - `limit` (optional): Number of logs to retrieve (default: 10, max: 25).
+- **`/logs failures`**: View failed command executions.
+  - `limit` (optional): Number of logs to retrieve (default: 10, max: 25).
+- **`/logs stats`**: View command usage statistics.
+
+---
+
 ## `/ping`
 Replies with Pong! (Used to check if the bot is responsive).
 
